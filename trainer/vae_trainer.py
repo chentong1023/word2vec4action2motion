@@ -8,12 +8,13 @@ from utils.paramUtil import *
 
 # Trainer for model without Lie
 class Trainer(object):
-    def __init__(self, motion_sampler, opt, device):
+    def __init__(self, motion_sampler, action_dict, opt, device):
         self.opt = opt
         self.device = device
         self.motion_sampler = motion_sampler
         self.motion_enumerator = None
         self.opt_generator = None
+        self.action_dict = action_dict
         if self.opt.isTrain:
             self.align_criterion = nn.MSELoss()
             self.recon_criterion = nn.MSELoss()
@@ -45,6 +46,34 @@ class Trainer(object):
         kld = torch.log(sigma2/sigma1) + (torch.exp(logvar1) + (mu1-mu2)**2)/(2*torch.exp(logvar2)) - 1/2
         return kld.sum() / self.opt.batch_size
 
+    # This function is replaced by our novel method.
+    '''
+    def sample_z_cate(self, batch_size):
+        if self.opt.dim_category <= 0:
+            return None, np.zeros(batch_size)
+        # dim (num_samples, )
+        classes_to_generate = np.random.randint(self.opt.dim_category, size=batch_size)
+        # dim (num_samples, dim_category)
+        one_hot = np.zeros((classes_to_generate.shape[0], self.opt.dim_category), dtype=np.float32)
+        one_hot[np.arange(classes_to_generate.shape[0]), classes_to_generate] = 1
+
+        # dim (num_samples, dim_category)
+        one_hot_motion = torch.from_numpy(one_hot).to(self.device).requires_grad_(False)
+
+        return one_hot_motion, classes_to_generate
+    
+    def get_cate_one_hot(self, categories):
+        classes_to_generate = np.array(categories).reshape((-1,))
+        # dim (num_samples, dim_category)
+        one_hot = np.zeros((categories.shape[0], self.opt.dim_category), dtype=np.float32)
+        one_hot[np.arange(categories.shape[0]), classes_to_generate] = 1
+
+        # dim (num_samples, dim_category)
+        one_hot_motion = torch.from_numpy(one_hot).to(self.device).requires_grad_(False)
+
+        return one_hot_motion, classes_to_generate
+    '''
+
     def sample_z_cate(self, batch_size):
         if self.opt.dim_category <= 0:
             return None, np.zeros(batch_size)
@@ -59,16 +88,11 @@ class Trainer(object):
 
         return one_hot_motion, classes_to_generate
 
-    def get_cate_one_hot(self, categories):
+    def get_cate_word_embedding(self, categories):
         classes_to_generate = np.array(categories).reshape((-1,))
-        # dim (num_samples, dim_category)
-        one_hot = np.zeros((categories.shape[0], self.opt.dim_category), dtype=np.float32)
-        one_hot[np.arange(categories.shape[0]), classes_to_generate] = 1
-
-        # dim (num_samples, dim_category)
-        one_hot_motion = torch.from_numpy(one_hot).to(self.device).requires_grad_(False)
-
-        return one_hot_motion, classes_to_generate
+        word_embedding_motion = 
+        
+        return word_embedding_motion, classes_to_generate
 
 
     def train(self, prior_net, posterior_net, decoder, opt_prior_net, opt_posterior_net, opt_decoder, sample_true):
@@ -83,7 +107,7 @@ class Trainer(object):
         data, cate_data = sample_true()
         self.real_data = data
         # dim(batch_size, category_dim)
-        cate_one_hot, classes_to_generate = self.get_cate_one_hot(cate_data)
+        cate_embed, classes_to_generate = self.get_cate_word_embedding(cate_data)
         data = torch.clone(data).float().detach_().to(self.device)
         motion_length = data.shape[1]
 
@@ -99,11 +123,11 @@ class Trainer(object):
         opt_step_cnt = 0
 
         for i in range(0, motion_length):
-            condition_vec = cate_one_hot
+            condition_vec = cate_embed
             if self.opt.time_counter:
                 time_counter = i / (motion_length - 1)
                 time_counter_vec = self.tensor_fill((data.shape[0], 1), time_counter)
-                condition_vec = torch.cat((cate_one_hot, time_counter_vec), dim=1)
+                condition_vec = torch.cat((cate_embed, time_counter_vec), dim=1)
             # print(prior_vec.shape, condition_vec.shape)
             h = torch.cat((prior_vec, condition_vec), dim=1)
             h_target = torch.cat((data[:, i], condition_vec), dim=1)
@@ -139,12 +163,12 @@ class Trainer(object):
 
         return log_dict
 
-    def evaluate(self, prior_net, decoder, num_samples, cate_one_hot=None):
+    def evaluate(self, prior_net, decoder, num_samples, cate_embed=None):
         prior_net.eval()
         decoder.eval()
         with torch.no_grad():
-            if cate_one_hot is None:
-                cate_one_hot, classes_to_generate = self.sample_z_cate(num_samples)
+            if cate_embed is None:
+                cate_embed, classes_to_generate = self.sample_z_cate(num_samples)
             else:
                 classes_to_generate = None
             prior_vec = self.tensor_fill((num_samples, self.opt.pose_dim), 0)
@@ -153,11 +177,11 @@ class Trainer(object):
 
             generate_batch = []
             for i in range(0, self.opt.motion_length):
-                condition_vec = cate_one_hot
+                condition_vec = cate_embed
                 if self.opt.time_counter:
                     time_counter = i / (self.opt.motion_length - 1)
                     time_counter_vec = self.tensor_fill((num_samples, 1), time_counter)
-                    condition_vec = torch.cat((cate_one_hot, time_counter_vec), dim=1)
+                    condition_vec = torch.cat((cate_embed, time_counter_vec), dim=1)
                 # print(prior_vec.shape, condition_vec.shape)
                 h = torch.cat((prior_vec, condition_vec), dim=1)
                 z_t_p, mu_p, logvar_p, h_in_p = prior_net(h)

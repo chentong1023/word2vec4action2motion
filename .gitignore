@@ -1,1 +1,7 @@
-./dataset/
+.idea/
+.vscode/
+dataset/
+*/__pycache__
+eval_results/
+.vscode/
+checkpoints/

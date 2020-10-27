@@ -16,7 +16,8 @@ if __name__ == "__main__":
     label_dec = None
     dim_category = 31
     enumerator = None
-    device = torch.device("cuda:" + str(opt.gpu_id) if opt.gpu_id else "cpu")
+    device = torch.device("cuda:" + str(opt.gpu_id))
+    
 
     opt.save_root = os.path.join(opt.checkpoints_dir, opt.dataset_type, opt.name)
     opt.model_path = os.path.join(opt.save_root, 'model')

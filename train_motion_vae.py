@@ -1,5 +1,9 @@
 from torch.utils.data import DataLoader
 
+from bert4keras.backend import keras
+from bert4keras.models import build_transformer_model
+from bert4keras.tokenizers import Tokenizer
+from bert4keras.snippets import to_array
 import models.motion_vae as vae_models
 import utils.paramUtil as paramUtil
 from trainer.vae_trainer import *
@@ -7,6 +11,7 @@ from dataProcessing import dataset
 from utils.plot_script import plot_loss
 from options.train_vae_options import TrainOptions
 import os
+
 
 
 if __name__ == "__main__":
@@ -36,6 +41,7 @@ if __name__ == "__main__":
         raw_offsets = paramUtil.humanact12_raw_offsets
         kinematic_chain = paramUtil.humanact12_kinematic_chain
         data = dataset.MotionFolderDatasetHumanAct12(dataset_path, opt, lie_enforce=opt.lie_enforce)
+        action_dict = paramUtil.humanact12_coarse_action_enumerator
 
     elif opt.dataset_type == "mocap":
         dataset_path = "./dataset/mocap/mocap_3djoints/"
@@ -45,6 +51,7 @@ if __name__ == "__main__":
         raw_offsets = paramUtil.mocap_raw_offsets
         kinematic_chain = paramUtil.mocap_kinematic_chain
         data = dataset.MotionFolderDatasetMocap(clip_path, dataset_path, opt)
+        action_dict = paramUtil.mocap_action_enumerator
 
     elif opt.dataset_type == "ntu_rgbd_vibe":
         file_prefix = "./dataset"
@@ -56,10 +63,13 @@ if __name__ == "__main__":
         kinematic_chain = paramUtil.vibe_kinematic_chain
         data = dataset.MotionFolderDatasetNtuVIBE(file_prefix, motion_desc_file, labels, opt, joints_num=joints_num,
                                               offset=True, extract_joints=paramUtil.kinect_vibe_extract_joints)
+        action_dict = paramUtil.ntu_action_enumerator
     else:
         raise NotImplementedError('This dataset is unregonized!!!')
 
     opt.dim_category = len(data.labels)
+    embeds = torch.nn.Embedding(opt.dim_category, opt.dim_embedding)
+
     # arbitrary_len won't limit motion length, but the batch size has to be 1
     if opt.arbitrary_len:
         opt.batch_size = 1
@@ -70,9 +80,9 @@ if __name__ == "__main__":
     opt.pose_dim = input_size
 
     if opt.time_counter:
-        opt.input_size = input_size + opt.dim_category + 1
+        opt.input_size = input_size + opt.dim_embedding + 1
     else:
-        opt.input_size = input_size + opt.dim_category
+        opt.input_size = input_size + opt.dim_embedding
 
     opt.output_size = input_size
     prior_net = vae_models.GaussianGRU(opt.input_size, opt.dim_z, opt.hidden_size,
@@ -100,10 +110,10 @@ if __name__ == "__main__":
 
     if opt.use_lie:
         # Use Lie representation
-        trainer = TrainerLie(motion_loader, opt, device, raw_offsets, kinematic_chain)
+        trainer = TrainerLie(motion_loader, action_dict, opt, device, raw_offsets, kinematic_chain)
     else:
         # Use 3d coordinates representation
-        trainer = Trainer(motion_loader, opt, device)
+        trainer = Trainer(motion_loader, action_dict, opt, device)
 
     logs = trainer.trainIters(prior_net, posterior_net, decoder)
 
