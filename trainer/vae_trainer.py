@@ -54,24 +54,24 @@ class Trainer(object):
         # dim (num_samples, )
         classes_to_generate = np.random.randint(self.opt.dim_category, size=batch_size)
         # dim (num_samples, dim_category)
-        one_hot = np.zeros((classes_to_generate.shape[0], self.opt.dim_category), dtype=np.float32)
-        one_hot[np.arange(classes_to_generate.shape[0]), classes_to_generate] = 1
+        embed = np.zeros((classes_to_generate.shape[0], self.opt.dim_category), dtype=np.float32)
+        embed[np.arange(classes_to_generate.shape[0]), classes_to_generate] = 1
 
         # dim (num_samples, dim_category)
-        one_hot_motion = torch.from_numpy(one_hot).to(self.device).requires_grad_(False)
+        embed_motion = torch.from_numpy(embed).to(self.device).requires_grad_(False)
 
-        return one_hot_motion, classes_to_generate
+        return embed_motion, classes_to_generate
     
-    def get_cate_one_hot(self, categories):
+    def get_cate_embed(self, categories):
         classes_to_generate = np.array(categories).reshape((-1,))
         # dim (num_samples, dim_category)
-        one_hot = np.zeros((categories.shape[0], self.opt.dim_category), dtype=np.float32)
-        one_hot[np.arange(categories.shape[0]), classes_to_generate] = 1
+        embed = np.zeros((categories.shape[0], self.opt.dim_category), dtype=np.float32)
+        embed[np.arange(categories.shape[0]), classes_to_generate] = 1
 
         # dim (num_samples, dim_category)
-        one_hot_motion = torch.from_numpy(one_hot).to(self.device).requires_grad_(False)
+        embed_motion = torch.from_numpy(embed).to(self.device).requires_grad_(False)
 
-        return one_hot_motion, classes_to_generate
+        return embed_motion, classes_to_generate
     '''
 
     def sample_z_cate(self, batch_size):
@@ -80,19 +80,21 @@ class Trainer(object):
         # dim (num_samples, )
         classes_to_generate = np.random.randint(self.opt.dim_category, size=batch_size)
         # dim (num_samples, dim_category)
-        one_hot = np.zeros((classes_to_generate.shape[0], self.opt.dim_category), dtype=np.float32)
-        one_hot[np.arange(classes_to_generate.shape[0]), classes_to_generate] = 1
+        embed = np.stack([self.action_dict[i].numpy() for i in classes_to_generate])
 
         # dim (num_samples, dim_category)
-        one_hot_motion = torch.from_numpy(one_hot).to(self.device).requires_grad_(False)
+        embed_motion = torch.from_numpy(embed).to(self.device).requires_grad_(False)
 
-        return one_hot_motion, classes_to_generate
+        return embed_motion, classes_to_generate
 
     def get_cate_word_embedding(self, categories):
         classes_to_generate = np.array(categories).reshape((-1,))
-        word_embedding_motion = 
-        
-        return word_embedding_motion, classes_to_generate
+        # dim (num_samples, dim_category)
+        embed = np.stack([self.action_dict[i].numpy() for i in classes_to_generate])
+        # dim (num_samples, dim_category)
+        embed_motion = torch.from_numpy(embed).to(self.device).requires_grad_(False)
+
+        return embed_motion, classes_to_generate
 
 
     def train(self, prior_net, posterior_net, decoder, opt_prior_net, opt_posterior_net, opt_decoder, sample_true):
@@ -236,7 +238,7 @@ class Trainer(object):
         start_time = time.time()
 
         e_num_samples = 20
-        cate_one_hot, classes = self.sample_z_cate(e_num_samples)
+        cate_embed, classes = self.sample_z_cate(e_num_samples)
         np.save(os.path.join(self.opt.joints_path, "motion_class.npy"), classes)
 
         while True:
@@ -263,7 +265,7 @@ class Trainer(object):
                 print_current_loss(start_time, iter_num, self.opt.iters, mean_loss)
 
             if iter_num % self.opt.eval_every == 0:
-                fake_motion, _ = self.evaluate(prior_net, decoder, e_num_samples, cate_one_hot)
+                fake_motion, _ = self.evaluate(prior_net, decoder, e_num_samples, cate_embed)
                 np.save(os.path.join(self.opt.joints_path, "motion_joints" + str(iter_num) + ".npy"), fake_motion)
 
             if iter_num % self.opt.save_every == 0:
@@ -278,8 +280,9 @@ class Trainer(object):
 
 # trainning with lie algebra paramters
 class TrainerLie(Trainer):
-    def __init__(self, motion_sampler, opt, device, raw_offsets, kinematic_chain):
+    def __init__(self, motion_sampler, action_dict, opt, device, raw_offsets, kinematic_chain):
         super(TrainerLie, self).__init__(motion_sampler,
+                                         action_dict,
                                          opt,
                                          device)
         self.raw_offsets = torch.from_numpy(raw_offsets).to(device).detach()
@@ -369,9 +372,9 @@ class TrainerLie(Trainer):
         joints = self.lie_skeleton.forward_kinematics(lie_params, joints, root_translation, scale_inds=scale_inds)
         return joints.view(joints.shape[0], -1)
 
-    def evaluate(self, prior_net, decoder, num_samples, cate_one_hot=None, real_joints=None):
+    def evaluate(self, prior_net, decoder, num_samples, cate_embed=None, real_joints=None):
         generated_batch, classes_to_generate = super(TrainerLie, self).evaluate(
-            prior_net, decoder, num_samples, cate_one_hot)
+            prior_net, decoder, num_samples, cate_embed)
         if not self.opt.isTrain:
             generated_batch_lie = generated_batch.to(self.device)
             #real_joints (batch_size, motion_length, joint_num*3)
@@ -400,9 +403,9 @@ class TrainerLie(Trainer):
 
 
     # Evaluation with variable bone lengths
-    def evaluate3(self, prior_net, decoder, num_samples, cate_one_hot=None, real_joints=None):
+    def evaluate3(self, prior_net, decoder, num_samples, cate_embed=None, real_joints=None):
         generated_batch, classes_to_generate = super(TrainerLie, self).evaluate(
-            prior_net, decoder, num_samples, cate_one_hot)
+            prior_net, decoder, num_samples, cate_embed)
         kinematic_chains = humanact12_kinematic_chain
         if not self.opt.isTrain:
             generated_batch_lie = generated_batch.to(self.device)

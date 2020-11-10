@@ -1,15 +1,14 @@
 from torch.utils.data import DataLoader
 
-from bert4keras.backend import keras
-from bert4keras.models import build_transformer_model
-from bert4keras.tokenizers import Tokenizer
-from bert4keras.snippets import to_array
 import models.motion_vae as vae_models
 import utils.paramUtil as paramUtil
 from trainer.vae_trainer import *
 from dataProcessing import dataset
 from utils.plot_script import plot_loss
 from options.train_vae_options import TrainOptions
+
+from transformers import BertTokenizer, BertModel
+from embed.word_embeding import sequence_embedding
 import os
 
 
@@ -68,7 +67,12 @@ if __name__ == "__main__":
         raise NotImplementedError('This dataset is unregonized!!!')
 
     opt.dim_category = len(data.labels)
-    embeds = torch.nn.Embedding(opt.dim_category, opt.dim_embedding)
+    action_embed_dict = []
+    bert_tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+    bert_model = BertModel.from_pretrained("bert-base-uncased", output_hidden_states=True)
+    bert_model.eval()
+    for key, value in action_dict.items():
+        action_embed_dict.append(sequence_embedding(value, bert_tokenizer, bert_model))
 
     # arbitrary_len won't limit motion length, but the batch size has to be 1
     if opt.arbitrary_len:
@@ -110,10 +114,10 @@ if __name__ == "__main__":
 
     if opt.use_lie:
         # Use Lie representation
-        trainer = TrainerLie(motion_loader, action_dict, opt, device, raw_offsets, kinematic_chain)
+        trainer = TrainerLie(motion_loader, action_embed_dict, opt, device, raw_offsets, kinematic_chain)
     else:
         # Use 3d coordinates representation
-        trainer = Trainer(motion_loader, action_dict, opt, device)
+        trainer = Trainer(motion_loader, action_embed_dict, opt, device)
 
     logs = trainer.trainIters(prior_net, posterior_net, decoder)
 

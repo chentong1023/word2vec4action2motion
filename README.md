@@ -16,7 +16,7 @@ Anaconda is recommended to create the virtual environment
 ```sh
 conda env create -f environment.yaml
 source activate torch-action2pose
-pip install bert4keras
+pip install transformers
 ```
 
 ----

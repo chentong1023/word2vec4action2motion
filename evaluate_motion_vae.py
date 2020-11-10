@@ -7,6 +7,9 @@ from options.evaluate_vae_options import *
 from dataProcessing import dataset
 from torch.utils.data import DataLoader
 
+from transformers import BertTokenizer, BertModel
+from embed.word_embeding import sequence_embedding
+
 if __name__ == "__main__":
     parser = TestOptions()
     opt = parser.parse()
@@ -18,7 +21,7 @@ if __name__ == "__main__":
     enumerator = None
     device = torch.device("cuda:" + str(opt.gpu_id))
     
-
+    opt.dim_bedding = 768
     opt.save_root = os.path.join(opt.checkpoints_dir, opt.dataset_type, opt.name)
     opt.model_path = os.path.join(opt.save_root, 'model')
     opt.joints_path = os.path.join(opt.save_root, 'joints')
@@ -60,12 +63,20 @@ if __name__ == "__main__":
 
     opt.dim_category = len(label_dec)
 
+    action_embed_dict = []
+    action_dict = enumerator
+    bert_tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+    bert_model = BertModel.from_pretrained("bert-base-uncased", output_hidden_states=True)
+    bert_model.eval()
+    for key, value in action_dict.items():
+        action_embed_dict.append(sequence_embedding(value, bert_tokenizer, bert_model))
+
     opt.pose_dim = input_size
 
     if opt.time_counter:
-        opt.input_size = input_size + opt.dim_category + 1
+        opt.input_size = input_size + opt.dim_bedding + 1
     else:
-        opt.input_size = input_size + opt.dim_category
+        opt.input_size = input_size + opt.dim_bedding
 
     opt.output_size = input_size
 
@@ -96,9 +107,9 @@ if __name__ == "__main__":
         motion_dataset = dataset.MotionDataset(data, opt)
         motion_loader = DataLoader(motion_dataset, batch_size=opt.batch_size, drop_last=True, num_workers=2,
                                    shuffle=True)
-        trainer = TrainerLie(motion_loader, opt, device, raw_offsets, kinematic_chain)
+        trainer = TrainerLie(motion_loader, action_embed_dict ,opt, device, raw_offsets, kinematic_chain)
     else:
-        trainer = Trainer(None, opt, device)
+        trainer = Trainer(None, action_embed_dict, opt, device)
 
     if opt.do_random:
         fake_motion, classes = trainer.evaluate(prior_net, decoder, opt.num_samples)
@@ -106,8 +117,8 @@ if __name__ == "__main__":
     else:
         categories = np.arange(opt.dim_category).repeat(opt.replic_times, axis=0)
         num_samples = categories.shape[0]
-        category_oh, classes = trainer.get_cate_one_hot(categories)
-        fake_motion, _ = trainer.evaluate(prior_net, decoder, num_samples, category_oh)
+        category_em, classes = trainer.get_cate_embed(categories)
+        fake_motion, _ = trainer.evaluate(prior_net, decoder, num_samples, category_em)
         fake_motion = fake_motion.cpu().numpy()
 
     print(fake_motion.shape)

@@ -9,7 +9,7 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--arbitrary_len', action='store_true', help='Enable variable length (batch_size has to'
                                                                               ' be 1 and motion_len will be disabled)')
 
-        self.parser.add_argument('--dim_embedding', type=int, default=30, help='Dimension of word embedding')
+        self.parser.add_argument('--dim_embedding', type=int, default=768, help='Dimension of word embedding')
 
         self.parser.add_argument('--skip_prob', type=float, default=0, help='Probability of skip frame while collecting loss')
         self.parser.add_argument('--tf_ratio', type=float, default=0.6, help='Teacher force learning ratio')
