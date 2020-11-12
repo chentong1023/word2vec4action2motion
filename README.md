@@ -108,6 +108,26 @@ python evaluate_motion_vae.py --name vanila_vae_tf_2 --dataset_type mocap  --mot
 You could change the argument `replic_times` to get more generated motions. If you're testing the model you‘ve trained by you own, please replace the argument `name` with the name of checkpoint model you want to test.
 
 ---
+### Generate New Label (alpha)
+
+You could use the argument `--eval_type` to generate new labels which hasn't seen in training stage.
+
+- HumanAct12
+```sh
+python evaluate_motion_vae.py --name <Experiment_name> --dataset_type humanact12 --use_lie --time_counter --motion_length 60 --coarse_grained --gpu_id 0 --replic_times 5 --name_ext _R0 --eval_type <label>
+```
+
+- NTU-RGBD
+```sh
+python evaluate_motion_vae.py --name <Experiment_name> --dataset_type ntu_rgbd_vibe --use_lie --time_counter --motion_length 60 --gpu_id 0 --replic_times 5 --name_ext R0 --eval_type <label>
+```
+
+- CMU Mocap
+```sh
+python evaluate_motion_vae.py --name <Experiment_name> --dataset_type mocap --use_lie --time_counter --motion_length 60 --gpu_id 0 --replic_times 5 --name_ext R0 --eval_type <label>
+```
+
+---
 #### Citation
 If you find this model or datasets useful for you research, please consider citing our [work](https://ericguo5513.github.io/action-to-motion/website/bibtex.txt).
 
