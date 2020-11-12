@@ -114,16 +114,26 @@ if __name__ == "__main__":
     if opt.do_random:
         fake_motion, classes = trainer.evaluate(prior_net, decoder, opt.num_samples)
         fake_motion = fake_motion.cpu().numpy()
+    elif opt.eval_type != "":
+        category_em = sequence_embedding(opt.eval_type, bert_tokenizer, bert_model)
+        categories = np.stack([category_em for i in range(opt.replic_times)])
+        categories_em = torch.from_numpy(categories).to(device).requires_grad_(False)
+        fake_motion, _ = trainer.evaluate(prior_net, decoder, opt.replic_times, categories_em)
+        fake_motion = fake_motion.cpu().numpy()
     else:
         categories = np.arange(opt.dim_category).repeat(opt.replic_times, axis=0)
         num_samples = categories.shape[0]
-        category_em, classes = trainer.get_cate_embed(categories)
+        category_em, classes = trainer.get_cate_word_embedding(categories)
         fake_motion, _ = trainer.evaluate(prior_net, decoder, num_samples, category_em)
         fake_motion = fake_motion.cpu().numpy()
 
     print(fake_motion.shape)
     for i in range(fake_motion.shape[0]):
-        class_type = enumerator[label_dec[classes[i]]]
+        if opt.eval_type != "":
+            class_type = opt.eval_type
+        else:
+            class_type = enumerator[label_dec[classes[i]]]
+
         motion_orig = fake_motion[i]
         if not os.path.exists(result_path):
             os.makedirs(result_path)

@@ -18,4 +18,5 @@ class TestOptions(BaseOptions):
         # Extension for name of saving files
         self.parser.add_argument('--name_ext', type=str, default="", help='Extension of save path')
 
+        self.parser.add_argument('--eval_type', type=str, default="", help='The type of name that you wanna evaluate')
         self.isTrain = False
