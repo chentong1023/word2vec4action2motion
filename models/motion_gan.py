@@ -7,6 +7,7 @@ import torch.nn.functional as F
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # device = "cpu"
 
+
 class Noise(nn.Module):
     def __init__(self, use_noise, sigma=0.2):
         super(Noise, self).__init__()
@@ -15,13 +16,27 @@ class Noise(nn.Module):
 
     def forward(self, x):
         if self.use_noise:
-            return x + self.sigma * tensor(torch.randn(x.size), dtype=torch.double,\
-                                           device=device, requires_grad=False)
+            return x + self.sigma * tensor(
+                torch.randn(x.size),
+                dtype=torch.double,
+                device=device,
+                requires_grad=False,
+            )
         return x
 
 
 class MotionGenerator(nn.Module):
-    def __init__(self, dim_z, dim_category, motion_length, hidden_size, opt, joints_num=24, input_size=72, output_size=72):
+    def __init__(
+        self,
+        dim_z,
+        dim_category,
+        motion_length,
+        hidden_size,
+        opt,
+        joints_num=24,
+        input_size=72,
+        output_size=72,
+    ):
         super(MotionGenerator, self).__init__()
 
         self.dim_z = dim_z
@@ -78,7 +93,9 @@ class MotionGenerator(nn.Module):
 
         # dim (motion_len, num_samples, dim_category)
         one_hot_motion = np.expand_dims(one_hot, axis=0).repeat(motion_len, axis=0)
-        one_hot_motion = torch.from_numpy(one_hot_motion).to(device).requires_grad_(False)
+        one_hot_motion = (
+            torch.from_numpy(one_hot_motion).to(device).requires_grad_(False)
+        )
 
         return one_hot_motion, classes_to_generate
 
@@ -93,7 +110,9 @@ class MotionGenerator(nn.Module):
 
         # dim (motion_len, num_samples, dim_category)
         one_hot_motion = np.expand_dims(one_hot, axis=0).repeat(motion_len, axis=0)
-        one_hot_motion = torch.from_numpy(one_hot_motion).to(device).requires_grad_(False)
+        one_hot_motion = (
+            torch.from_numpy(one_hot_motion).to(device).requires_grad_(False)
+        )
 
         return one_hot_motion, classes_to_generate
 
@@ -188,22 +207,42 @@ class MotionGenerator(nn.Module):
 
     def init_hidden(self, num_samples, layers=1):
         # return torch.zeros(num_samples, self.hidden_size, device=device, requires_grad=False)
-        return torch.randn(layers, num_samples, self.hidden_size, device=device).float().requires_grad_(False)
+        return (
+            torch.randn(layers, num_samples, self.hidden_size, device=device)
+            .float()
+            .requires_grad_(False)
+        )
 
     def get_normal_noise(self, num_samples):
-        return torch.randn(num_samples, self.dim_z, device=device).float().requires_grad_(False)
+        return (
+            torch.randn(num_samples, self.dim_z, device=device)
+            .float()
+            .requires_grad_(False)
+        )
 
 
 class MotionGeneratorLie(MotionGenerator):
-    def __init__(self, dim_z, dim_category, motion_length, hidden_size, opt, joints_num=24, input_size=72, output_size=72):
-        super(MotionGeneratorLie, self).__init__(dim_z,
-                                                 dim_category,
-                                                 motion_length,
-                                                 hidden_size,
-                                                 opt,
-                                                 joints_num,
-                                                 input_size,
-                                                 output_size)
+    def __init__(
+        self,
+        dim_z,
+        dim_category,
+        motion_length,
+        hidden_size,
+        opt,
+        joints_num=24,
+        input_size=72,
+        output_size=72,
+    ):
+        super(MotionGeneratorLie, self).__init__(
+            dim_z,
+            dim_category,
+            motion_length,
+            hidden_size,
+            opt,
+            joints_num,
+            input_size,
+            output_size,
+        )
         self.opt = opt
         if self.opt.no_trajectory:
             self.linear_lie = nn.Linear(self.hidden_size, self.output_size)
@@ -258,7 +297,9 @@ class MotionGeneratorLie(MotionGenerator):
 
 
 class MotionDiscriminator(nn.Module):
-    def __init__(self, input_size, hidden_size, hidden_layer, output_size=1, use_noise=None):
+    def __init__(
+        self, input_size, hidden_size, hidden_layer, output_size=1, use_noise=None
+    ):
         super(MotionDiscriminator, self).__init__()
 
         self.input_size = input_size
@@ -284,16 +325,28 @@ class MotionDiscriminator(nn.Module):
         return lin2, _
 
     def initHidden(self, num_samples, layer):
-        return torch.randn(layer, num_samples, self.hidden_size, device=device, requires_grad=False)
+        return torch.randn(
+            layer, num_samples, self.hidden_size, device=device, requires_grad=False
+        )
 
 
 class CategoricalMotionDiscriminator(MotionDiscriminator):
-    def __init__(self, input_size, hidden_size, hidden_layer, dim_categorical, output_size=1, use_noise=None):
-        super(CategoricalMotionDiscriminator, self).__init__(input_size=input_size,
-                                                             hidden_size=hidden_size,
-                                                             hidden_layer=hidden_layer,
-                                                             output_size=output_size + dim_categorical,
-                                                             use_noise=use_noise)
+    def __init__(
+        self,
+        input_size,
+        hidden_size,
+        hidden_layer,
+        dim_categorical,
+        output_size=1,
+        use_noise=None,
+    ):
+        super(CategoricalMotionDiscriminator, self).__init__(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            hidden_layer=hidden_layer,
+            output_size=output_size + dim_categorical,
+            use_noise=use_noise,
+        )
         self.dim_categorical = dim_categorical
 
     def split(self, vec):
@@ -304,8 +357,9 @@ class CategoricalMotionDiscriminator(MotionDiscriminator):
         motion_sequence = motion_sequence.permute(1, 0, 2)
         # dim (hidden_layers, num_samples, hidden_size)
         hidden_unit = self.initHidden(motion_sequence.size(1), self.hidden_layer)
-        pre_vector, _ = super(CategoricalMotionDiscriminator, self).\
-            forward(motion_sequence, hidden_unit)
+        pre_vector, _ = super(CategoricalMotionDiscriminator, self).forward(
+            motion_sequence, hidden_unit
+        )
         # dim (num_samples) (num_samples, dim_category)
         labels, categ = self.split(pre_vector)
         return labels, categ

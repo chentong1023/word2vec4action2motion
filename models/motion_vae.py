@@ -3,7 +3,9 @@ import torch.nn as nn
 
 
 class GaussianGRU(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size, n_layers, batch_size, device):
+    def __init__(
+        self, input_size, output_size, hidden_size, n_layers, batch_size, device
+    ):
         super(GaussianGRU, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
@@ -12,7 +14,9 @@ class GaussianGRU(nn.Module):
         self.batch_size = batch_size
         self.device = device
         self.embed = nn.Linear(input_size, hidden_size)
-        self.gru = nn.ModuleList([nn.GRUCell(hidden_size, hidden_size) for i in range(self.n_layers)])
+        self.gru = nn.ModuleList(
+            [nn.GRUCell(hidden_size, hidden_size) for i in range(self.n_layers)]
+        )
         self.mu_net = nn.Linear(hidden_size, output_size)
         self.logvar_net = nn.Linear(hidden_size, output_size)
         self.hidden = self.init_hidden()
@@ -21,7 +25,11 @@ class GaussianGRU(nn.Module):
         batch_size = num_samples if num_samples is not None else self.batch_size
         hidden = []
         for i in range(self.n_layers):
-            hidden.append(torch.zeros(batch_size, self.hidden_size).requires_grad_(False).to(self.device))
+            hidden.append(
+                torch.zeros(batch_size, self.hidden_size)
+                .requires_grad_(False)
+                .to(self.device)
+            )
         self.hidden = hidden
         return hidden
 
@@ -43,7 +51,9 @@ class GaussianGRU(nn.Module):
 
 
 class DecoderGRU(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size, n_layers, batch_size, device):
+    def __init__(
+        self, input_size, output_size, hidden_size, n_layers, batch_size, device
+    ):
         super(DecoderGRU, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
@@ -52,7 +62,9 @@ class DecoderGRU(nn.Module):
         self.n_layers = n_layers
         self.device = device
         self.embed = nn.Linear(input_size, hidden_size)
-        self.gru = nn.ModuleList([nn.GRUCell(hidden_size, hidden_size) for i in range(self.n_layers)])
+        self.gru = nn.ModuleList(
+            [nn.GRUCell(hidden_size, hidden_size) for i in range(self.n_layers)]
+        )
 
         self.output = nn.Linear(hidden_size, output_size)
         self.hidden = self.init_hidden()
@@ -61,7 +73,11 @@ class DecoderGRU(nn.Module):
         batch_size = num_samples if num_samples is not None else self.batch_size
         hidden = []
         for i in range(self.n_layers):
-            hidden.append(torch.zeros(batch_size, self.hidden_size).requires_grad_(False).to(self.device))
+            hidden.append(
+                torch.zeros(batch_size, self.hidden_size)
+                .requires_grad_(False)
+                .to(self.device)
+            )
         self.hidden = hidden
         return hidden
 
@@ -73,15 +89,15 @@ class DecoderGRU(nn.Module):
             h_in = self.hidden[i]
         return self.output(h_in), h_in
 
+
 # generator with Lie algbra parameters, root joint has no rotations
 class DecoderGRULie(DecoderGRU):
-    def __init__(self, input_size, output_size, hidden_size, n_layers, batch_size, device):
-        super(DecoderGRULie, self).__init__(input_size,
-                                            output_size,
-                                            hidden_size,
-                                            n_layers,
-                                            batch_size,
-                                            device)
+    def __init__(
+        self, input_size, output_size, hidden_size, n_layers, batch_size, device
+    ):
+        super(DecoderGRULie, self).__init__(
+            input_size, output_size, hidden_size, n_layers, batch_size, device
+        )
         self.output_lie = nn.Linear(output_size - 3, output_size - 3)
         self.PI = 3.1415926
 

@@ -13,18 +13,23 @@ import codecs
 import joblib
 from lie.pose_lie import *
 
+
 class MotionFolderDatasetMocap(data.Dataset):
     def __init__(self, filename, datapath, opt, do_offset=True):
-        self.clip = pd.read_csv(filename, index_col=False).dropna(how='all').dropna(axis=1, how='all')
+        self.clip = (
+            pd.read_csv(filename, index_col=False)
+            .dropna(how="all")
+            .dropna(axis=1, how="all")
+        )
         self.datapath = datapath
         self.lengths = []
         self.data = []
         self.labels = []
         self.opt = opt
         for i in range(self.clip.shape[0]):
-            motion_name = self.clip.iloc[i]['motion']
-            action_type = self.clip.iloc[i]['action_type']
-            npy_path = os.path.join(datapath, motion_name + '.npy')
+            motion_name = self.clip.iloc[i]["motion"]
+            action_type = self.clip.iloc[i]["action_type"]
+            npy_path = os.path.join(datapath, motion_name + ".npy")
 
             # motion_length, joints_num, 3
             pose_raw = np.load(npy_path)
@@ -55,11 +60,16 @@ class MotionFolderDatasetMocap(data.Dataset):
                 self.labels.append(action_type)
             self.lengths.append(pose_mat.shape[0])
         self.cumsum = np.cumsum([0] + self.lengths)
-        print("Total number of frames {}, videos {}, action types {}".format(self.cumsum[-1], self.clip.shape[0],
-                                                                             len(self.labels)))
+        print(
+            "Total number of frames {}, videos {}, action types {}".format(
+                self.cumsum[-1], self.clip.shape[0], len(self.labels)
+            )
+        )
         self.label_enc = dict(zip(self.labels, np.arange(len(self.labels))))
         self.label_enc_rev = dict(zip(np.arange(len(self.labels)), self.labels))
-        with codecs.open(os.path.join(opt.save_root, "label_enc_rev_mocap.txt"), 'w', 'utf-8') as f:
+        with codecs.open(
+            os.path.join(opt.save_root, "label_enc_rev_mocap.txt"), "w", "utf-8"
+        ) as f:
             for item in self.label_enc_rev.items():
                 f.write(str(item) + "\n")
 
@@ -76,7 +86,15 @@ class MotionFolderDatasetMocap(data.Dataset):
 
 
 class MotionFolderDatasetHumanAct12(data.Dataset):
-    def __init__(self, datapath, opt, lie_enforce, do_offset=True, raw_offsets=None, kinematic_chain=None):
+    def __init__(
+        self,
+        datapath,
+        opt,
+        lie_enforce,
+        do_offset=True,
+        raw_offsets=None,
+        kinematic_chain=None,
+    ):
         self.datapath = datapath
         self.do_offset = do_offset
         self.lengths = []
@@ -88,7 +106,9 @@ class MotionFolderDatasetHumanAct12(data.Dataset):
 
         if lie_enforce:
             raw_offsets = torch.from_numpy(raw_offsets)
-            self.lie_skeleton = LieSkeleton(raw_offsets, kinematic_chain, torch.DoubleTensor)
+            self.lie_skeleton = LieSkeleton(
+                raw_offsets, kinematic_chain, torch.DoubleTensor
+            )
 
         for file_name in data_list:
             full_path = os.path.join(self.datapath, file_name)
@@ -109,9 +129,10 @@ class MotionFolderDatasetHumanAct12(data.Dataset):
                 pose_mat = torch.from_numpy(pose_mat)
                 lie_params = self.lie_skeleton.inverse_kinemetics(pose_mat).numpy()
                 # use the first column to store root translation information
-                pose_mat = np.concatenate((np.expand_dims(pose_mat[:, 0, :], axis=1)
-                                           , lie_params[:, 1:, :])
-                                           , axis=1)
+                pose_mat = np.concatenate(
+                    (np.expand_dims(pose_mat[:, 0, :], axis=1), lie_params[:, 1:, :]),
+                    axis=1,
+                )
 
             pose_mat = pose_mat.reshape((-1, 24 * 3))
 
@@ -124,7 +145,7 @@ class MotionFolderDatasetHumanAct12(data.Dataset):
                     offset = np.tile(pose_mat[..., :3], (1, int(pose_mat.shape[1] / 3)))
                     pose_mat = pose_mat - offset
 
-            label = file_name[file_name.find('A') + 1: file_name.find('.')]
+            label = file_name[file_name.find("A") + 1 : file_name.find(".")]
             # print(file_name)
             if opt.coarse_grained:
                 label = label[:2]
@@ -134,10 +155,16 @@ class MotionFolderDatasetHumanAct12(data.Dataset):
             self.lengths.append(pose_mat.shape[0])
         self.labels.sort()
         self.cumsum = np.cumsum([0] + self.lengths)
-        print("Total number of frames {}, videos {}, action types {}".format(self.cumsum[-1], len(data_list), len(self.labels)))
+        print(
+            "Total number of frames {}, videos {}, action types {}".format(
+                self.cumsum[-1], len(data_list), len(self.labels)
+            )
+        )
         self.label_enc = dict(zip(self.labels, np.arange(len(self.labels))))
         self.label_enc_rev = dict(zip(np.arange(len(self.labels)), self.labels))
-        with codecs.open(os.path.join(opt.save_root, "label_enc_rev_humanact13.txt"), 'w', 'utf-8') as f:
+        with codecs.open(
+            os.path.join(opt.save_root, "label_enc_rev_humanact13.txt"), "w", "utf-8"
+        ) as f:
             for item in self.label_enc_rev.items():
                 f.write(str(item) + "\n")
 
@@ -154,7 +181,16 @@ class MotionFolderDatasetHumanAct12(data.Dataset):
 
 
 class MotionFolderDatasetNtuVIBE(data.Dataset):
-    def __init__(self, file_prefix, candi_list_desc, labels, opt, joints_num=18, do_offset=True, extract_joints=None):
+    def __init__(
+        self,
+        file_prefix,
+        candi_list_desc,
+        labels,
+        opt,
+        joints_num=18,
+        do_offset=True,
+        extract_joints=None,
+    ):
         self.data = []
         self.labels = labels
         self.lengths = []
@@ -163,7 +199,7 @@ class MotionFolderDatasetNtuVIBE(data.Dataset):
         candi_list = []
 
         candi_list_desc_name = os.path.join(file_prefix, candi_list_desc)
-        with cs.open(candi_list_desc_name, 'r', 'utf-8') as f:
+        with cs.open(candi_list_desc_name, "r", "utf-8") as f:
             for line in f.readlines():
                 candi_list.append(line.strip())
 
@@ -172,19 +208,18 @@ class MotionFolderDatasetNtuVIBE(data.Dataset):
             # (motion_length, 49, 3)
             # print(os.path.join(file_prefix, path))
             try:
-                data_mat = data_org[1]['joints3d']
+                data_mat = data_org[1]["joints3d"]
             except Exception:
                 continue
-            action_id = int(path[path.index('A') + 1:-4])
+            action_id = int(path[path.index("A") + 1 : -4])
             motion_mat = data_mat
 
             if extract_joints is not None:
                 # (motion_length, len(extract_joints, 3))
                 motion_mat = motion_mat[:, extract_joints, :]
 
-
             # change the root keypoint of skeleton, exchange the location of 0 and 8
-            #if opt.use_lie:
+            # if opt.use_lie:
             tmp = np.array(motion_mat[:, 0, :])
             motion_mat[:, 0, :] = motion_mat[:, 8, :]
             motion_mat[:, 8, :] = tmp
@@ -200,8 +235,14 @@ class MotionFolderDatasetNtuVIBE(data.Dataset):
             self.data.append((motion_mat, action_id))
             self.lengths.append(data_mat.shape[0])
         self.cumsum = np.cumsum([0] + self.lengths)
-        print("Total number of frames {}, videos {}, action types {}".format(self.cumsum[-1], len(self.data), len(self.labels)))
-        with codecs.open(os.path.join(opt.save_root, "label_enc_rev_ntu_vibe.txt"), 'w', 'utf-8') as f:
+        print(
+            "Total number of frames {}, videos {}, action types {}".format(
+                self.cumsum[-1], len(self.data), len(self.labels)
+            )
+        )
+        with codecs.open(
+            os.path.join(opt.save_root, "label_enc_rev_ntu_vibe.txt"), "w", "utf-8"
+        ) as f:
             for item in self.label_enc_rev.items():
                 f.write(str(item) + "\n")
 
@@ -268,7 +309,9 @@ class MotionDataset(data.Dataset):
             end = start + self.motion_length
             r_motion = motion[start:end]
             # offset deduction
-            r_motion = r_motion - np.tile(r_motion[0, :3], (1, int(r_motion.shape[-1]/3)))
+            r_motion = r_motion - np.tile(
+                r_motion[0, :3], (1, int(r_motion.shape[-1] / 3))
+            )
         # padding
         else:
             gap = self.motion_length - motion_len

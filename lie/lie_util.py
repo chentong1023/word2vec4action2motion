@@ -4,11 +4,11 @@ HAT_INV_SKEW_SYMMETRIC_TOL = 1e-5
 
 
 def allclose(mat1, mat2, tol=1e-6):
-    '''
+    """
     check is all elements of two tensors are close within some tolerance.
 
     Either tensor can be replaced by a scalar
-    '''
+    """
     return isclose(mat1, mat2, tol).all()
 
 
@@ -19,6 +19,7 @@ def isclose(mat1, mat2, tol=1e-6):
     Either tensot can be replaced by a scalar
     """
     return (mat1 - mat2).abs_().lt(tol)
+
 
 def outer(vecs1, vecs2):
     """Return the N x D x D outer products of a N x D batch of vectors,
@@ -32,11 +33,15 @@ def outer(vecs1, vecs2):
         vecs2 = vecs2.unsqueeze(dim=0)
 
     if vecs1.shape[0] != vecs2.shape[0]:
-        raise ValueError("Got inconsistent batch sizes {} and {}".format(
-            vecs1.shape[0], vecs2.shape[0]))
+        raise ValueError(
+            "Got inconsistent batch sizes {} and {}".format(
+                vecs1.shape[0], vecs2.shape[0]
+            )
+        )
 
-    return torch.bmm(vecs1.unsqueeze(dim=2),
-                     vecs2.unsqueeze(dim=2).transpose(2, 1)).squeeze_()
+    return torch.bmm(
+        vecs1.unsqueeze(dim=2), vecs2.unsqueeze(dim=2).transpose(2, 1)
+    ).squeeze_()
 
 
 def trace(mat):
@@ -62,10 +67,8 @@ def matR_log_map(R, eps: float = 1e-4, cos_angle: bool = False):
 
     rot_trace = trace(R)
 
-    if((rot_trace < -1.0 - eps) + (rot_trace > 3.0 + eps)).any():
-        raise ValueError(
-            "A matrix has trace outside valid range [-1-eps, 3+eps]."
-        )
+    if ((rot_trace < -1.0 - eps) + (rot_trace > 3.0 + eps)).any():
+        raise ValueError("A matrix has trace outside valid range [-1-eps, 3+eps].")
 
     # clamp to valid range
     rot_trace = torch.clamp(rot_trace, -1.0, 3.0)

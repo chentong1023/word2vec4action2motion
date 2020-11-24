@@ -1,83 +1,133 @@
 import numpy as np
+
 ntu_action_labels = [6, 7, 8, 9, 22, 23, 24, 38, 80, 93, 99, 100, 102]
 
-kinect_vibe_extract_joints = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 21, 24, 38]
+kinect_vibe_extract_joints = [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    21,
+    24,
+    38,
+]
 
 
 # Raw_offsets give the rough direction of each joint relative to root joint.
 # For example, raw offset of root joint is [0,0,0]; raw offset of left hip is [-1, 0, 0].
 # It could simply be [1, 0, 0] for all joint except root. However, this may affect the precision of transformation.
-humanact12_raw_offsets = np.array([[0,0,0],
-                               [1,0,0],
-                               [-1,0,0],
-                               [0,1,0],
-                               [0,-1,0],
-                               [0,-1,0],
-                               [0,1,0],
-                               [0,-1,0],
-                               [0,-1,0],
-                               [0,1,0],
-                               [0,0,1],
-                               [0,0,1],
-                               [0,1,0],
-                               [1,0,0],
-                               [-1,0,0],
-                               [0,0,1],
-                               [0,-1,0],
-                               [0,-1,0],
-                               [0,-1,0],
-                               [0,-1,0],
-                               [0,-1,0],
-                               [0,-1,0],
-                               [0,-1,0],
-                               [0,-1,0]])
+humanact12_raw_offsets = np.array(
+    [
+        [0, 0, 0],
+        [1, 0, 0],
+        [-1, 0, 0],
+        [0, 1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, 1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+        [0, 0, 1],
+        [0, 1, 0],
+        [1, 0, 0],
+        [-1, 0, 0],
+        [0, 0, 1],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+    ]
+)
 
-vibe_raw_offsets = np.array([[0,0,0],
-                               [0,-1,0],
-                               [0,-1,0],
-                               [-1,0,0],
-                               [0,0,-1],
-                               [0,-1,0],
-                               [0,-1,0],
-                               [0,0,-1],
-                               [0,-1,0],
-                               [0,1,0],
-                               [0,1,0],
-                               [0,1,0],
-                               [0,1,0],
-                               [0,1,0],
-                               [0,1,0],
-                               [0,1,0],
-                               [0,1,0],
-                               [0,-1,0]])
+vibe_raw_offsets = np.array(
+    [
+        [0, 0, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [-1, 0, 0],
+        [0, 0, -1],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, 0, -1],
+        [0, -1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, -1, 0],
+    ]
+)
 
-mocap_raw_offsets = np.array([[0, 0, 0],
-                             [0, 1, 0],
-                             [0, 1, 0],
-                             [0, 1, 0],
-                             [0, 1, 0],
-                             [1, 0, 0],
-                             [0, 1, 0],
-                             [0, 1, 0],
-                             [0, 1, 0],
-                             [-1, 0, 0],
-                             [-1, 0, 0],
-                             [-1, 0, 0],
-                             [0, -1, 0],
-                             [0, -1, 0],
-                             [0, -1, 0],
-                             [0, -1, 0],
-                             [0, -1, 0],
-                             [0, -1, 0],
-                             [0, -1, 0],
-                             [0, -1, 0]])
+mocap_raw_offsets = np.array(
+    [
+        [0, 0, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [0, 1, 0],
+        [-1, 0, 0],
+        [-1, 0, 0],
+        [-1, 0, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+        [0, -1, 0],
+    ]
+)
 
 # Define a kinematic tree for the skeletal struture
-humanact12_kinematic_chain = [[0, 1, 4, 7, 10], [0, 2, 5, 8, 11], [0, 3, 6, 9, 12, 15], [9, 13, 16, 18, 20, 22], [9, 14, 17, 19, 21, 23]]
+humanact12_kinematic_chain = [
+    [0, 1, 4, 7, 10],
+    [0, 2, 5, 8, 11],
+    [0, 3, 6, 9, 12, 15],
+    [9, 13, 16, 18, 20, 22],
+    [9, 14, 17, 19, 21, 23],
+]
 
-mocap_kinematic_chain = [[0, 1, 2, 3], [0, 12, 13, 14, 15], [0, 16, 17, 18, 19], [1, 4, 5, 6, 7], [1, 8, 9, 10, 11]]
+mocap_kinematic_chain = [
+    [0, 1, 2, 3],
+    [0, 12, 13, 14, 15],
+    [0, 16, 17, 18, 19],
+    [1, 4, 5, 6, 7],
+    [1, 8, 9, 10, 11],
+]
 
-vibe_kinematic_chain = [[0, 12, 13, 14, 15], [0, 9, 10, 11, 16], [0, 1, 8, 17], [1, 5, 6, 7], [1, 2, 3, 4]]
+vibe_kinematic_chain = [
+    [0, 12, 13, 14, 15],
+    [0, 9, 10, 11, 16],
+    [0, 1, 8, 17],
+    [1, 5, 6, 7],
+    [1, 2, 3, 4],
+]
 
 mocap_action_enumerator = {
     0: "Walk",
@@ -87,7 +137,7 @@ mocap_action_enumerator = {
     4: "Animal Behavior",
     5: "Dance",
     6: "Step",
-    7: "Climb"
+    7: "Climb",
 }
 
 humanact12_coarse_action_enumerator = {
@@ -143,38 +193,38 @@ humanact12_fine_action_enumerator = {
 }
 
 humanact12_action_enumerator = {
-    0: 'warm_up_wristankle',
-    1: 'warm_up_pectoral',
-    2: 'warm_up_eblowback',
-    3: 'walk',
-    4: 'run',
-    5: 'jump_handsup',
-    6: 'drink_bottle_righthand',
-    7: 'drink_bottle_lefthand',
-    8: 'lift_dumbles_right',
-    9: 'lift_dumbles_left',
-    10: 'lift_dumbles_both',
-    11: 'lift_dumbles_updown',
-    12: 'warm_up_bodylean',
-    13: 'warm_up_bow_right',
-    14: 'warm_up_bow_left',
-    15: 'jump_vertical',
-    16: 'lift_dumbles_wholeupdown',
-    17: 'sit',
-    18: 'eat_finger_right',
-    19: 'eat_pie',
-    20: 'drive',
-    21: 'phone_right',
-    22: 'box_left_right',
-    23: 'box_left',
-    24: 'box_right',
-    25: 'throw_right',
-    26: 'drink_cup_righthand',
-    27: 'drink_cup_righthand',
-    28: 'eat_finger_left',
-    29: 'phone_left',
-    30: 'throw_both',
-                      }
+    0: "warm_up_wristankle",
+    1: "warm_up_pectoral",
+    2: "warm_up_eblowback",
+    3: "walk",
+    4: "run",
+    5: "jump_handsup",
+    6: "drink_bottle_righthand",
+    7: "drink_bottle_lefthand",
+    8: "lift_dumbles_right",
+    9: "lift_dumbles_left",
+    10: "lift_dumbles_both",
+    11: "lift_dumbles_updown",
+    12: "warm_up_bodylean",
+    13: "warm_up_bow_right",
+    14: "warm_up_bow_left",
+    15: "jump_vertical",
+    16: "lift_dumbles_wholeupdown",
+    17: "sit",
+    18: "eat_finger_right",
+    19: "eat_pie",
+    20: "drive",
+    21: "phone_right",
+    22: "box_left_right",
+    23: "box_left",
+    24: "box_right",
+    25: "throw_right",
+    26: "drink_cup_righthand",
+    27: "drink_cup_righthand",
+    28: "eat_finger_left",
+    29: "phone_left",
+    30: "throw_both",
+}
 
 ntu_action_enumerator = {
     1: "drink water",
@@ -297,5 +347,4 @@ ntu_action_enumerator = {
     118: "exchange things with other person",
     119: "support somebody with hand",
     120: "finger-guessing game (playing rock-paper-scissors)",
-     }
-
+}

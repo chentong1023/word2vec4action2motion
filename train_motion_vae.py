@@ -12,15 +12,16 @@ from embed.word_embeding import sequence_embedding
 import os
 
 
-
 if __name__ == "__main__":
     parser = TrainOptions()
     opt = parser.parse()
-    device = torch.device("cuda:" + str(opt.gpu_id) if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda:" + str(opt.gpu_id) if torch.cuda.is_available() else "cpu"
+    )
 
     opt.save_root = os.path.join(opt.checkpoints_dir, opt.dataset_type, opt.name)
-    opt.model_path = os.path.join(opt.save_root, 'model')
-    opt.joints_path = os.path.join(opt.save_root, 'joints')
+    opt.model_path = os.path.join(opt.save_root, "model")
+    opt.joints_path = os.path.join(opt.save_root, "joints")
     opt.log_path = os.path.join(opt.save_root, "log.txt")
 
     if not os.path.exists(opt.model_path):
@@ -39,12 +40,14 @@ if __name__ == "__main__":
         joints_num = 24
         raw_offsets = paramUtil.humanact12_raw_offsets
         kinematic_chain = paramUtil.humanact12_kinematic_chain
-        data = dataset.MotionFolderDatasetHumanAct12(dataset_path, opt, lie_enforce=opt.lie_enforce)
+        data = dataset.MotionFolderDatasetHumanAct12(
+            dataset_path, opt, lie_enforce=opt.lie_enforce
+        )
         action_dict = paramUtil.humanact12_coarse_action_enumerator
 
     elif opt.dataset_type == "mocap":
         dataset_path = "./dataset/mocap/mocap_3djoints/"
-        clip_path = './dataset/mocap/pose_clip.csv'
+        clip_path = "./dataset/mocap/pose_clip.csv"
         input_size = 60
         joints_num = 20
         raw_offsets = paramUtil.mocap_raw_offsets
@@ -60,16 +63,25 @@ if __name__ == "__main__":
         labels = paramUtil.ntu_action_labels
         raw_offsets = paramUtil.vibe_raw_offsets
         kinematic_chain = paramUtil.vibe_kinematic_chain
-        data = dataset.MotionFolderDatasetNtuVIBE(file_prefix, motion_desc_file, labels, opt, joints_num=joints_num,
-                                              do_offset=True, extract_joints=paramUtil.kinect_vibe_extract_joints)
+        data = dataset.MotionFolderDatasetNtuVIBE(
+            file_prefix,
+            motion_desc_file,
+            labels,
+            opt,
+            joints_num=joints_num,
+            do_offset=True,
+            extract_joints=paramUtil.kinect_vibe_extract_joints,
+        )
         action_dict = paramUtil.ntu_action_enumerator
     else:
-        raise NotImplementedError('This dataset is unregonized!!!')
+        raise NotImplementedError("This dataset is unregonized!!!")
 
     opt.dim_category = len(data.labels)
     action_embed_dict = []
     bert_tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-    bert_model = BertModel.from_pretrained("bert-base-uncased", output_hidden_states=True)
+    bert_model = BertModel.from_pretrained(
+        "bert-base-uncased", output_hidden_states=True
+    )
     bert_model.eval()
     for key, value in action_dict.items():
         action_embed_dict.append(sequence_embedding(value, bert_tokenizer, bert_model))
@@ -77,10 +89,18 @@ if __name__ == "__main__":
     # arbitrary_len won't limit motion length, but the batch size has to be 1
     if opt.arbitrary_len:
         opt.batch_size = 1
-        motion_loader = DataLoader(data, batch_size=opt.batch_size, drop_last=True, num_workers=1, shuffle=True)
+        motion_loader = DataLoader(
+            data, batch_size=opt.batch_size, drop_last=True, num_workers=1, shuffle=True
+        )
     else:
         motion_dataset = dataset.MotionDataset(data, opt)
-        motion_loader = DataLoader(motion_dataset, batch_size=opt.batch_size, drop_last=True, num_workers=2, shuffle=True)
+        motion_loader = DataLoader(
+            motion_dataset,
+            batch_size=opt.batch_size,
+            drop_last=True,
+            num_workers=2,
+            shuffle=True,
+        )
     opt.pose_dim = input_size
 
     if opt.time_counter:
@@ -89,18 +109,40 @@ if __name__ == "__main__":
         opt.input_size = input_size + opt.dim_embedding
 
     opt.output_size = input_size
-    prior_net = vae_models.GaussianGRU(opt.input_size, opt.dim_z, opt.hidden_size,
-                                       opt.prior_hidden_layers, opt.batch_size, device)
-    posterior_net = vae_models.GaussianGRU(opt.input_size, opt.dim_z, opt.hidden_size,
-                                           opt.posterior_hidden_layers, opt.batch_size, device)
+    prior_net = vae_models.GaussianGRU(
+        opt.input_size,
+        opt.dim_z,
+        opt.hidden_size,
+        opt.prior_hidden_layers,
+        opt.batch_size,
+        device,
+    )
+    posterior_net = vae_models.GaussianGRU(
+        opt.input_size,
+        opt.dim_z,
+        opt.hidden_size,
+        opt.posterior_hidden_layers,
+        opt.batch_size,
+        device,
+    )
     if opt.use_lie:
-        decoder = vae_models.DecoderGRULie(opt.input_size + opt.dim_z, opt.output_size, opt.hidden_size,
-                                           opt.decoder_hidden_layers,
-                                           opt.batch_size, device)
+        decoder = vae_models.DecoderGRULie(
+            opt.input_size + opt.dim_z,
+            opt.output_size,
+            opt.hidden_size,
+            opt.decoder_hidden_layers,
+            opt.batch_size,
+            device,
+        )
     else:
-        decoder = vae_models.DecoderGRU(opt.input_size + opt.dim_z, opt.output_size, opt.hidden_size,
-                                        opt.decoder_hidden_layers,
-                                        opt.batch_size, device)
+        decoder = vae_models.DecoderGRU(
+            opt.input_size + opt.dim_z,
+            opt.output_size,
+            opt.hidden_size,
+            opt.decoder_hidden_layers,
+            opt.batch_size,
+            device,
+        )
 
     pc_prior = sum(param.numel() for param in prior_net.parameters())
     print(prior_net)
@@ -114,7 +156,9 @@ if __name__ == "__main__":
 
     if opt.use_lie:
         # Use Lie representation
-        trainer = TrainerLie(motion_loader, action_embed_dict, opt, device, raw_offsets, kinematic_chain)
+        trainer = TrainerLie(
+            motion_loader, action_embed_dict, opt, device, raw_offsets, kinematic_chain
+        )
     else:
         # Use 3d coordinates representation
         trainer = Trainer(motion_loader, action_embed_dict, opt, device)

@@ -20,14 +20,16 @@ if __name__ == "__main__":
     dim_category = 31
     enumerator = None
     device = torch.device("cuda:" + str(opt.gpu_id))
-    
+
     opt.dim_bedding = 768
     opt.save_root = os.path.join(opt.checkpoints_dir, opt.dataset_type, opt.name)
-    opt.model_path = os.path.join(opt.save_root, 'model')
-    opt.joints_path = os.path.join(opt.save_root, 'joints')
+    opt.model_path = os.path.join(opt.save_root, "model")
+    opt.joints_path = os.path.join(opt.save_root, "joints")
 
-    model_file_path = os.path.join(opt.model_path, opt.which_epoch + '.tar')
-    result_path = os.path.join(opt.result_path, opt.dataset_type, opt.name + opt.name_ext)
+    model_file_path = os.path.join(opt.model_path, opt.which_epoch + ".tar")
+    result_path = os.path.join(
+        opt.result_path, opt.dataset_type, opt.name + opt.name_ext
+    )
 
     if opt.dataset_type == "humanact12":
         dataset_path = "./dataset/humanact12"
@@ -40,7 +42,7 @@ if __name__ == "__main__":
 
     elif opt.dataset_type == "mocap":
         dataset_path = "./dataset/mocap/mocap_3djoints/"
-        clip_path = './dataset/mocap/pose_clip.csv'
+        clip_path = "./dataset/mocap/pose_clip.csv"
         input_size = 60
         joints_num = 20
         raw_offsets = paramUtil.mocap_raw_offsets
@@ -59,14 +61,16 @@ if __name__ == "__main__":
         raw_offsets = paramUtil.vibe_raw_offsets
         kinematic_chain = paramUtil.vibe_kinematic_chain
     else:
-        raise NotImplementedError('This dataset is unregonized!!!')
+        raise NotImplementedError("This dataset is unregonized!!!")
 
     opt.dim_category = len(label_dec)
 
     action_embed_dict = []
     action_dict = enumerator
     bert_tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-    bert_model = BertModel.from_pretrained("bert-base-uncased", output_hidden_states=True)
+    bert_model = BertModel.from_pretrained(
+        "bert-base-uncased", output_hidden_states=True
+    )
     bert_model.eval()
     for key, value in action_dict.items():
         action_embed_dict.append(sequence_embedding(value, bert_tokenizer, bert_model))
@@ -81,33 +85,65 @@ if __name__ == "__main__":
     opt.output_size = input_size
 
     model = torch.load(model_file_path)
-    prior_net = vae_models.GaussianGRU(opt.input_size, opt.dim_z, opt.hidden_size,
-                                       opt.prior_hidden_layers, opt.num_samples, device)
+    prior_net = vae_models.GaussianGRU(
+        opt.input_size,
+        opt.dim_z,
+        opt.hidden_size,
+        opt.prior_hidden_layers,
+        opt.num_samples,
+        device,
+    )
     if opt.use_lie:
-        decoder = vae_models.DecoderGRULie(opt.input_size + opt.dim_z, opt.output_size, opt.hidden_size,
-                                           opt.decoder_hidden_layers,
-                                           opt.num_samples, device)
+        decoder = vae_models.DecoderGRULie(
+            opt.input_size + opt.dim_z,
+            opt.output_size,
+            opt.hidden_size,
+            opt.decoder_hidden_layers,
+            opt.num_samples,
+            device,
+        )
     else:
-        decoder = vae_models.DecoderGRU(opt.input_size + opt.dim_z, opt.output_size, opt.hidden_size,
-                                        opt.decoder_hidden_layers,
-                                        opt.num_samples, device)
+        decoder = vae_models.DecoderGRU(
+            opt.input_size + opt.dim_z,
+            opt.output_size,
+            opt.hidden_size,
+            opt.decoder_hidden_layers,
+            opt.num_samples,
+            device,
+        )
 
-    prior_net.load_state_dict(model['prior_net'])
-    decoder.load_state_dict(model['decoder'])
+    prior_net.load_state_dict(model["prior_net"])
+    decoder.load_state_dict(model["decoder"])
     prior_net.to(device)
     decoder.to(device)
     if opt.use_lie:
-        if opt.dataset_type == 'humanact12':
-            data = dataset.MotionFolderDatasetHumanAct12(dataset_path, opt, lie_enforce=opt.lie_enforce)
-        elif opt.dataset_type == 'ntu_rgbd_vibe':
-            data = dataset.MotionFolderDatasetNtuVIBE(file_prefix, motion_desc_file, labels, opt, joints_num=joints_num,
-                                                      do_offset=True, extract_joints=paramUtil.kinect_vibe_extract_joints)
-        elif opt.dataset_type == 'mocap':
+        if opt.dataset_type == "humanact12":
+            data = dataset.MotionFolderDatasetHumanAct12(
+                dataset_path, opt, lie_enforce=opt.lie_enforce
+            )
+        elif opt.dataset_type == "ntu_rgbd_vibe":
+            data = dataset.MotionFolderDatasetNtuVIBE(
+                file_prefix,
+                motion_desc_file,
+                labels,
+                opt,
+                joints_num=joints_num,
+                do_offset=True,
+                extract_joints=paramUtil.kinect_vibe_extract_joints,
+            )
+        elif opt.dataset_type == "mocap":
             data = dataset.MotionFolderDatasetMocap(clip_path, dataset_path, opt)
         motion_dataset = dataset.MotionDataset(data, opt)
-        motion_loader = DataLoader(motion_dataset, batch_size=opt.batch_size, drop_last=True, num_workers=2,
-                                   shuffle=True)
-        trainer = TrainerLie(motion_loader, action_embed_dict ,opt, device, raw_offsets, kinematic_chain)
+        motion_loader = DataLoader(
+            motion_dataset,
+            batch_size=opt.batch_size,
+            drop_last=True,
+            num_workers=2,
+            shuffle=True,
+        )
+        trainer = TrainerLie(
+            motion_loader, action_embed_dict, opt, device, raw_offsets, kinematic_chain
+        )
     else:
         trainer = Trainer(None, action_embed_dict, opt, device)
 
@@ -123,7 +159,9 @@ if __name__ == "__main__":
 
         categories = np.stack([category_em for i in range(opt.replic_times)])
         categories_em = torch.from_numpy(categories).to(device).requires_grad_(False)
-        fake_motion, _ = trainer.evaluate(prior_net, decoder, opt.replic_times, categories_em)
+        fake_motion, _ = trainer.evaluate(
+            prior_net, decoder, opt.replic_times, categories_em
+        )
         fake_motion = fake_motion.cpu().numpy()
     else:
         categories = np.arange(opt.dim_category).repeat(opt.replic_times, axis=0)
@@ -142,23 +180,38 @@ if __name__ == "__main__":
         motion_orig = fake_motion[i]
         if not os.path.exists(result_path):
             os.makedirs(result_path)
-        keypoint_path = os.path.join(result_path, 'keypoint')
+        keypoint_path = os.path.join(result_path, "keypoint")
         if not os.path.exists(keypoint_path):
             os.makedirs(keypoint_path)
         file_name = os.path.join(result_path, class_type + str(i) + ".gif")
-        offset = np.matlib.repmat(np.array([motion_orig[0, 0], motion_orig[0, 1], motion_orig[0, 2]]),
-                                     motion_orig.shape[0], joints_num)
+        offset = np.matlib.repmat(
+            np.array([motion_orig[0, 0], motion_orig[0, 1], motion_orig[0, 2]]),
+            motion_orig.shape[0],
+            joints_num,
+        )
 
         motion_mat = motion_orig - offset
 
         motion_mat = motion_mat.reshape(-1, joints_num, 3)
-        np.save(os.path.join(keypoint_path, class_type + str(i) + '_3d.npy'), motion_mat)
+        np.save(
+            os.path.join(keypoint_path, class_type + str(i) + "_3d.npy"), motion_mat
+        )
 
         if opt.dataset_type == "humanact12":
-            plot_3d_motion_v2(motion_mat, kinematic_chain, save_path=file_name, interval=80)
+            plot_3d_motion_v2(
+                motion_mat, kinematic_chain, save_path=file_name, interval=80
+            )
 
         elif opt.dataset_type == "ntu_rgbd_vibe":
-            plot_3d_motion_v2(motion_mat, kinematic_chain, save_path=file_name, interval=80)
+            plot_3d_motion_v2(
+                motion_mat, kinematic_chain, save_path=file_name, interval=80
+            )
 
         elif opt.dataset_type == "mocap":
-            plot_3d_motion_v2(motion_mat, kinematic_chain, save_path=file_name, interval=80, dataset="mocap")
+            plot_3d_motion_v2(
+                motion_mat,
+                kinematic_chain,
+                save_path=file_name,
+                interval=80,
+                dataset="mocap",
+            )
