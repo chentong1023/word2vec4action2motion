@@ -101,7 +101,7 @@ if __name__ == "__main__":
             data = dataset.MotionFolderDatasetHumanAct12(dataset_path, opt, lie_enforce=opt.lie_enforce)
         elif opt.dataset_type == 'ntu_rgbd_vibe':
             data = dataset.MotionFolderDatasetNtuVIBE(file_prefix, motion_desc_file, labels, opt, joints_num=joints_num,
-                                                      offset=True, extract_joints=paramUtil.kinect_vibe_extract_joints)
+                                                      do_offset=True, extract_joints=paramUtil.kinect_vibe_extract_joints)
         elif opt.dataset_type == 'mocap':
             data = dataset.MotionFolderDatasetMocap(clip_path, dataset_path, opt)
         motion_dataset = dataset.MotionDataset(data, opt)
@@ -116,6 +116,11 @@ if __name__ == "__main__":
         fake_motion = fake_motion.cpu().numpy()
     elif opt.eval_type != "":
         category_em = sequence_embedding(opt.eval_type, bert_tokenizer, bert_model)
+
+        # category_em1 = sequence_embedding("run", bert_tokenizer, bert_model)
+        # category_em2 = sequence_embedding("walk", bert_tokenizer, bert_model)
+        # category_em = (category_em1 - category_em2) * 2 + category_em1
+
         categories = np.stack([category_em for i in range(opt.replic_times)])
         categories_em = torch.from_numpy(categories).to(device).requires_grad_(False)
         fake_motion, _ = trainer.evaluate(prior_net, decoder, opt.replic_times, categories_em)

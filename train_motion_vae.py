@@ -61,7 +61,7 @@ if __name__ == "__main__":
         raw_offsets = paramUtil.vibe_raw_offsets
         kinematic_chain = paramUtil.vibe_kinematic_chain
         data = dataset.MotionFolderDatasetNtuVIBE(file_prefix, motion_desc_file, labels, opt, joints_num=joints_num,
-                                              offset=True, extract_joints=paramUtil.kinect_vibe_extract_joints)
+                                              do_offset=True, extract_joints=paramUtil.kinect_vibe_extract_joints)
         action_dict = paramUtil.ntu_action_enumerator
     else:
         raise NotImplementedError('This dataset is unregonized!!!')
