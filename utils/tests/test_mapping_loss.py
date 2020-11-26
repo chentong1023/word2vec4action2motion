@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 
 from utils.mapping_loss import mapping_loss
+from models.mlp import MLP
 
 
 @pytest.fixture
@@ -36,3 +37,8 @@ def pose_loss(a, b):
 
 def test_mapping_loss(num, points1, points2, poses):
     mapping_loss(points1, points2, poses, pose_loss)
+
+
+def test_mlp():
+    model = MLP(5, 2, [4, 4])
+    model(torch.ones([100, 5]))
