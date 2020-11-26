@@ -6,8 +6,8 @@ from typing import List
 __all__ = ["mapping_loss"]
 
 
-def loss_matrix(poses: List, pose_loss):
-    pose_n = len(poses)
+def loss_matrix(poses: torch.Tensor, pose_loss):
+    pose_n = poses.shape[0]
     loss_mat = torch.empty([pose_n, pose_n])
     for i in range(pose_n):
         for j in range(pose_n):
@@ -15,14 +15,14 @@ def loss_matrix(poses: List, pose_loss):
     return loss_mat
 
 
-def mapping_loss(original_p: List[torch.Tensor], mapped_p: List[torch.Tensor], poses: List, pose_loss):
+def mapping_loss(original_p: torch.Tensor, mapped_p: torch.Tensor, poses: torch.Tensor, pose_loss):
 
-    assert len(original_p) == len(mapped_p) == len(poses)
-    num = len(original_p)
+    assert original_p.shape[0] == mapped_p.shape[0] == poses.shape[0]
+    num = original_p.shape[0]
 
-    origin_p_tensor = torch.stack(original_p)
-    mapped_p_tensor = torch.stack(mapped_p)
-    similarity_loss = (origin_p_tensor - mapped_p_tensor) ** 2
+    # origin_p_tensor = torch.stack(original_p)
+    # mapped_p_tensor = torch.stack(mapped_p)
+    similarity_loss = (original_p - mapped_p) ** 2
 
     triplet_loss = torch.tensor(0.)
     loss_mat = loss_matrix(poses, pose_loss)
