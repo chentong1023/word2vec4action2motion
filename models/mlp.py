@@ -18,6 +18,8 @@ class MLP(nn.Module):
         for i, h in enumerate(hidden_size):
             if i == 0:
                 self.layers.append(nn.Linear(input_size, h).to(self.device))
+            else:
+                self.layers.append(nn.Linear(hidden_size[i-1], h).to(self.device))
         self.output_layer = nn.Linear(hidden_size[-1], output_size)
 
         self.relu = nn.ReLU()
