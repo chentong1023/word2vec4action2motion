@@ -7,16 +7,17 @@ __all__ = ["MLP"]
 
 
 class MLP(nn.Module):
-    def __init__(self, input_size: int, output_size: int, hidden_size: List[int]):
+    def __init__(self, input_size: int, output_size: int, hidden_size: List[int], device):
         super(MLP, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
         self.hidden_size = hidden_size
+        self.device = device
 
         self.layers = []
         for i, h in enumerate(hidden_size):
             if i == 0:
-                self.layers.append(nn.Linear(input_size, h))
+                self.layers.append(nn.Linear(input_size, h).to(self.device))
         self.output_layer = nn.Linear(hidden_size[-1], output_size)
 
         self.relu = nn.ReLU()

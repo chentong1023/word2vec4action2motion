@@ -40,5 +40,7 @@ def test_mapping_loss(num, points1, points2, poses):
 
 
 def test_mlp():
-    model = MLP(5, 2, [4, 4])
-    model(torch.ones([100, 5]))
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model = MLP(5, 2, [4, 4], device).to(device)
+    print("Model construction completed.")
+    model(torch.ones([100, 5]).to(device))
