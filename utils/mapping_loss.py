@@ -1,5 +1,5 @@
 import torch
-import torch.nn as n
+import torch.nn as nn
 import torch.nn.functional as F
 from typing import List
 
@@ -26,6 +26,7 @@ def mapping_loss(original_p: torch.Tensor, mapped_p: torch.Tensor, poses: torch.
 
     triplet_loss = torch.tensor(0.)
     loss_mat = loss_matrix(poses, pose_loss)
+    relu = nn.ReLU()
     for i in range(num):
         for j in range(num):
             for k in range(j + 1, num):
@@ -37,8 +38,8 @@ def mapping_loss(original_p: torch.Tensor, mapped_p: torch.Tensor, poses: torch.
                 dis_i_k = (mapped_p[i] - mapped_p[k]) ** 2
 
                 if loss_i_j < loss_i_k:
-                    triplet_loss += torch.sum(torch.max(dis_i_j - dis_i_k, torch.tensor(0.)))
+                    triplet_loss += torch.sum(relu(dis_i_j - dis_i_k))
                 else:
-                    triplet_loss += torch.sum(torch.max(dis_i_k - dis_i_j, torch.tensor(0.)))
+                    triplet_loss += torch.sum(relu(dis_i_k - dis_i_j))
 
     return similarity_loss, triplet_loss
