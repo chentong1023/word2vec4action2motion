@@ -5,6 +5,7 @@ from utils.utils_ import *
 from lie.pose_lie import *
 from lie.lie_util import *
 from utils.paramUtil import *
+from utils.mapping_loss import mapping_loss
 
 # Trainer for model without Lie
 class Trainer(object):
@@ -104,14 +105,17 @@ class Trainer(object):
         self,
         prior_net,
         posterior_net,
+        project_net,
         decoder,
         opt_prior_net,
         opt_posterior_net,
+        opt_project_net,
         opt_decoder,
         sample_true,
     ):
         opt_prior_net.zero_grad()
         opt_posterior_net.zero_grad()
+        opt_project_net.zero_grad()
         opt_decoder.zero_grad()
 
         prior_net.init_hidden()
@@ -133,15 +137,18 @@ class Trainer(object):
         teacher_force = True if random.random() < self.opt.tf_ratio else False
         mse = 0
         kld = 0
+        sim = 0
+        tri = 0
 
         opt_step_cnt = 0
 
         for i in range(0, motion_length):
-            condition_vec = cate_embed
+            cate_embed_proj = project_net(cate_embed)
+            condition_vec = cate_embed_proj
             if self.opt.time_counter:
                 time_counter = i / (motion_length - 1)
                 time_counter_vec = self.tensor_fill((data.shape[0], 1), time_counter)
-                condition_vec = torch.cat((cate_embed, time_counter_vec), dim=1)
+                condition_vec = torch.cat((cate_embed_proj, time_counter_vec), dim=1)
             # print(prior_vec.shape, condition_vec.shape)
             h = torch.cat((prior_vec, condition_vec), dim=1)
             h_target = torch.cat((data[:, i], condition_vec), dim=1)
@@ -158,6 +165,10 @@ class Trainer(object):
                 opt_step_cnt += 1
                 mse += self.recon_criterion(x_pred, data[:, i])
                 kld += self.kl_criterion(mu, logvar, mu_p, logvar_p)
+                similarity, triplet = mapping_loss(cate_embed, cate_embed_proj, data[:, i], self.recon_criterion)
+                sim += similarity
+                tri += triplet
+
             if teacher_force:
                 prior_vec = x_pred
             else:
@@ -165,7 +176,7 @@ class Trainer(object):
 
         log_dict["g_recon_loss"] = mse.item() / opt_step_cnt
         log_dict["g_kld_loss"] = kld.item() / opt_step_cnt
-        losses = mse + kld * self.opt.lambda_kld
+        losses = mse + kld * self.opt.lambda_kld + sim * self.opt.lambda_sim + tri * self.opt.lambda_tri
 
         avg_loss = losses.item() / opt_step_cnt
         losses.backward()
@@ -173,13 +184,15 @@ class Trainer(object):
         opt_prior_net.step()
         opt_posterior_net.step()
         opt_decoder.step()
+        opt_project_net.step()
         log_dict["g_loss"] = avg_loss
 
         return log_dict
 
-    def evaluate(self, prior_net, decoder, num_samples, cate_embed=None):
+    def evaluate(self, prior_net, project_net, decoder, num_samples, cate_embed=None):
         prior_net.eval()
         decoder.eval()
+        project_net.eval()
         with torch.no_grad():
             if cate_embed is None:
                 cate_embed, classes_to_generate = self.sample_z_cate(num_samples)
@@ -188,14 +201,16 @@ class Trainer(object):
             prior_vec = self.tensor_fill((num_samples, self.opt.pose_dim), 0)
             prior_net.init_hidden(num_samples)
             decoder.init_hidden(num_samples)
+            project_net.init_hidden(num_samples)
 
             generate_batch = []
             for i in range(0, self.opt.motion_length):
-                condition_vec = cate_embed
+                cate_embed_project = project_net(cate_embed)
+                condition_vec = cate_embed_project
                 if self.opt.time_counter:
                     time_counter = i / (self.opt.motion_length - 1)
                     time_counter_vec = self.tensor_fill((num_samples, 1), time_counter)
-                    condition_vec = torch.cat((cate_embed, time_counter_vec), dim=1)
+                    condition_vec = torch.cat((cate_embed_project, time_counter_vec), dim=1)
                 # print(prior_vec.shape, condition_vec.shape)
                 h = torch.cat((prior_vec, condition_vec), dim=1)
                 z_t_p, mu_p, logvar_p, h_in_p = prior_net(h)
@@ -209,7 +224,7 @@ class Trainer(object):
 
         return generate_batch.cpu(), classes_to_generate
 
-    def trainIters(self, prior_net, posterior_net, decoder):
+    def trainIters(self, prior_net, posterior_net, project_net, decoder):
         self.opt_decoder = optim.Adam(
             decoder.parameters(), lr=0.0002, betas=(0.9, 0.999), weight_decay=0.00001
         )
@@ -222,19 +237,28 @@ class Trainer(object):
             betas=(0.9, 0.999),
             weight_decay=0.00001,
         )
+        self.opt_project_net = optim.Adam(
+            project_net.parameters(),
+            lr=0.0002,
+            betas=(0.9, 0.999),
+            weight_decay=0.00001,
+        )
 
         prior_net.to(self.device)
         posterior_net.to(self.device)
         decoder.to(self.device)
+        project_net.to(self.device)
 
         def save_model(file_name):
             state = {
                 "prior_net": prior_net.state_dict(),
                 "posterior_net": posterior_net.state_dict(),
+                "project_net": project_net.state_dict(),
                 "decoder": decoder.state_dict(),
                 "opt_prior_net": self.opt_prior_net.state_dict(),
                 "opt_posterior_net": self.opt_posterior_net.state_dict(),
                 "opt_decoder": self.opt_decoder.state_dict(),
+                "opt_project_net": self.opt_project_net.state_dict(),
                 "iterations": iter_num,
             }
 
@@ -245,9 +269,11 @@ class Trainer(object):
             prior_net.load_state_dict(model["prior_net"])
             posterior_net.load_state_dict(model["posterior_net"])
             decoder.load_state_dict(model["decoder"])
+            project_net.load_state_dict(model["project_net"])
             self.opt_prior_net.load_state_dict(model["opt_prior_net"])
             self.opt_posterior_net.load_state_dict(model["opt_posterior_net"])
             self.opt_decoder.load_state_dict(model["opt_decoder"])
+            self.opt_project_net.load_state_dict(model["opt_project_net"])
 
         if self.opt.is_continue and self.opt.isTrain:
             load_model("latest")
@@ -264,13 +290,16 @@ class Trainer(object):
             prior_net.train()
             posterior_net.train()
             decoder.train()
+            project_net.train()
 
             gen_log_dict = self.train(
                 prior_net,
                 posterior_net,
+                project_net,
                 decoder,
                 self.opt_prior_net,
                 self.opt_posterior_net,
+                self.opt_project_net,
                 self.opt_decoder,
                 self.sample_real_motion_batch,
             )
@@ -293,7 +322,7 @@ class Trainer(object):
 
             if iter_num % self.opt.eval_every == 0:
                 fake_motion, _ = self.evaluate(
-                    prior_net, decoder, e_num_samples, cate_embed
+                    prior_net, project_net, decoder, e_num_samples, cate_embed
                 )
                 np.save(
                     os.path.join(
@@ -418,10 +447,10 @@ class TrainerLie(Trainer):
         return joints.view(joints.shape[0], -1)
 
     def evaluate(
-        self, prior_net, decoder, num_samples, cate_embed=None, real_joints=None
+        self, prior_net, project_net, decoder, num_samples, cate_embed=None, real_joints=None
     ):
         generated_batch, classes_to_generate = super(TrainerLie, self).evaluate(
-            prior_net, decoder, num_samples, cate_embed
+            prior_net, project_net, decoder, num_samples, cate_embed
         )
         if not self.opt.isTrain:
             generated_batch_lie = generated_batch.to(self.device)
@@ -455,10 +484,10 @@ class TrainerLie(Trainer):
 
     # Evaluation with variable bone lengths
     def evaluate3(
-        self, prior_net, decoder, num_samples, cate_embed=None, real_joints=None
+        self, prior_net, project_net, decoder, num_samples, cate_embed=None, real_joints=None
     ):
         generated_batch, classes_to_generate = super(TrainerLie, self).evaluate(
-            prior_net, decoder, num_samples, cate_embed
+            prior_net, project_net, decoder, num_samples, cate_embed
         )
         kinematic_chains = humanact12_kinematic_chain
         if not self.opt.isTrain:

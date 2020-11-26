@@ -10,6 +10,7 @@ from options.train_vae_options import TrainOptions
 from transformers import BertTokenizer, BertModel
 from embed.word_embeding import sequence_embedding
 import os
+from models.mlp import MLP
 
 
 if __name__ == "__main__":
@@ -125,6 +126,12 @@ if __name__ == "__main__":
         opt.batch_size,
         device,
     )
+    project_net = MLP(
+        768,
+        opt.dim_embedding,
+        [128, 64]
+    ).to(device)
+
     if opt.use_lie:
         decoder = vae_models.DecoderGRULie(
             opt.input_size + opt.dim_z,
@@ -163,7 +170,7 @@ if __name__ == "__main__":
         # Use 3d coordinates representation
         trainer = Trainer(motion_loader, action_embed_dict, opt, device)
 
-    logs = trainer.trainIters(prior_net, posterior_net, decoder)
+    logs = trainer.trainIters(prior_net, posterior_net, project_net, decoder)
 
     plot_loss(logs, os.path.join(opt.save_root, "loss_curve.png"), opt.plot_every)
     save_logfile(logs, opt.log_path)

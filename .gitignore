@@ -6,3 +6,4 @@ eval_results/
 .vscode/
 checkpoints/
 bert/
+embed_test.py
