@@ -33,6 +33,12 @@ class TrainOptions(BaseOptions):
             "--lambda_kld", type=float, default=0.0001, help="Weight of KL Divergence"
         )
         self.parser.add_argument(
+            "--lambda_sim", type=float, default=0.0001, help="Weight of similarity loss"
+        )
+        self.parser.add_argument(
+            "--lambda_tri", type=float, default=0.0001, help="Weight of triplet loss"
+        )
+        self.parser.add_argument(
             "--lambda_align", type=float, default=0.5, help="Weight of align loss"
         )
 

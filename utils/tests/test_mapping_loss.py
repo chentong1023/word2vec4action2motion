@@ -42,7 +42,7 @@ def pose_loss(a, b):
 
 @pytest.fixture
 def use_cuda():
-    return False
+    return True
 
 
 def test_mapping_loss(points1, points2, poses, use_cuda):
@@ -53,7 +53,13 @@ def test_mapping_loss(points1, points2, poses, use_cuda):
         points1 = points1.cuda()
         points2 = points2.cuda()
         poses = poses.cuda()
-    loss1, loss2 = mapping_loss(points1, points2, poses, pose_loss)
+
+    if use_cuda:
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device("cpu")
+
+    loss1, loss2 = mapping_loss(points1, points2, poses, pose_loss, device)
     assert loss1.shape == () == loss2.shape
 
 
@@ -64,6 +70,6 @@ def test_mlp(use_cuda):
     else:
         device = torch.device("cpu")
 
-    model = MLP(5, 2, [10, 9, 8], device).to(device)
+    model = MLP(5, 2, [10, 9, 8]).to(device)
     print("Model construction completed.")
     model(torch.ones([100, 5]).to(device))

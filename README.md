@@ -48,6 +48,12 @@ Our pre-trained models have been involved in folder `checkpoints/`. You don't ne
 **If you just want to play our pre-trained models, you could skip this step.**
 We train the models using the script `train_motion_vae.py`. All the argments and their descriptions used for training are given in `options/base_vae_option.py` and `options/train_vae_option.py`. Some of them were used during trials, but may not be used in our paper. The argments used in examples are these which produce best performances during tuning.
 
+**We have introduced vector mapping. Thus there should be arguments `--lambda_sim` and `--lambda_tri`. An example is given below:**
+```sh
+python train_motion_vae.py --name mapping_humanact12_nolie --dataset_type humanact12 --batch_size 8 --motion_length 60 --coarse_grained --lambda_kld 0.001 --lambda_sim 0.0001 --lambda_tri 0.0001 --eval_every 2000 --plot_every 50 --print_every 20 --save_every 2000 --save_latest 50 --time_counter --gpu_id 0 --iters 50000
+```
+**Note that a large batch size will render it very very very slow!**
+
 - HumanAct12
 ```sh
 python train_motion_vae.py --name <Experiment_name> --dataset_type humanact12 --batch_size 128 --motion_length 60 --coarse_grained --lambda_kld 0.001 --eval_every 2000 --plot_every 50 --print_every 20 --save_every 2000 --save_latest 50 --time_counter --use_lie --gpu_id 0 --iters 50000

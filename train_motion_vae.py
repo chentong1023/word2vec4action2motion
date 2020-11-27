@@ -126,7 +126,7 @@ if __name__ == "__main__":
         opt.batch_size,
         device,
     )
-    project_net = MLP(768, opt.dim_embedding, [128, 64], device)
+    project_net = MLP(768, opt.dim_embedding, [128, 64])
 
     if opt.use_lie:
         decoder = vae_models.DecoderGRULie(

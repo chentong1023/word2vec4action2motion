@@ -166,8 +166,9 @@ class Trainer(object):
                 mse += self.recon_criterion(x_pred, data[:, i])
                 kld += self.kl_criterion(mu, logvar, mu_p, logvar_p)
                 similarity, triplet = mapping_loss(
-                    cate_embed, cate_embed_proj, data[:, i], self.recon_criterion
+                    cate_embed, cate_embed_proj, data[:, i], self.recon_criterion, self.device
                 )
+
                 sim += similarity
                 tri += triplet
 
