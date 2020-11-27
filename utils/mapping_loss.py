@@ -41,4 +41,5 @@ def mapping_loss(
                 else:
                     triplet_loss += relu(dis_i_k - dis_i_j)
 
+    assert similarity_loss.shape == () == triplet_loss.shape
     return similarity_loss, triplet_loss
