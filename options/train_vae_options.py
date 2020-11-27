@@ -16,7 +16,7 @@ class TrainOptions(BaseOptions):
         )
 
         self.parser.add_argument(
-            "--dim_embedding", type=int, default=30, help="Dimension of word embedding"
+            "--dim_embedding", type=int, default=768, help="Dimension of word embedding"
         )
 
         self.parser.add_argument(

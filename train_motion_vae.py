@@ -161,6 +161,9 @@ if __name__ == "__main__":
     pc_decoder = sum(param.numel() for param in decoder.parameters())
     print(decoder)
     print("Total parameters of decoder: {}".format(pc_decoder))
+    pc_project_net = sum(param.numel() for param in project_net.parameters())
+    print(project_net)
+    print("Total parameters of decoder: {}".format(pc_project_net))
 
     if opt.use_lie:
         # Use Lie representation
