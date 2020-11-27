@@ -7,8 +7,8 @@ from typing import List, Tuple
 __all__ = ["mapping_loss"]
 
 
-def loss_matrix(poses: torch.Tensor, pose_loss, device) -> torch.Tensor:
-    batch_size = poses.shape[0]
+def loss_matrix(poses: torch.Tensor, pose_loss, device, lim) -> torch.Tensor:
+    batch_size = np.minimum(poses.shape[0], lim)
     loss_mat = torch.empty([batch_size, batch_size]).to(device)
     for i in range(batch_size):
         for j in range(batch_size):
@@ -16,8 +16,8 @@ def loss_matrix(poses: torch.Tensor, pose_loss, device) -> torch.Tensor:
     assert loss_mat[0, 0].shape == ()
     return loss_mat
 
-def dis_matrix(original_p: torch.Tensor, mapped_p: torch.Tensor, device) -> torch.Tensor:
-    batch_size = original_p.shape[0]
+def dis_matrix(original_p: torch.Tensor, mapped_p: torch.Tensor, device, lim) -> torch.Tensor:
+    batch_size = np.minimum(original_p.shape[0], lim)
     dis_mat = torch.empty([batch_size, batch_size]).to(device)
     for i in range(batch_size):
         for j in range(batch_size):
@@ -35,8 +35,10 @@ def mapping_loss(
     similarity_loss = torch.sum((original_p - mapped_p) ** 2)
 
     triplet_loss = torch.tensor(0.0).to(device)
-    loss_mat = loss_matrix(poses, pose_loss, device)
-    dis_mat = dis_matrix(original_p, mapped_p, device)
+    loss_mat = loss_matrix(poses, pose_loss, device, lim)
+    dis_mat = dis_matrix(original_p, mapped_p, device, lim)
+
+    assert loss_mat.shape[0] == batch_size == dis_mat.shape[0]
 
     relu = nn.ReLU()
 

@@ -42,7 +42,7 @@ def pose_loss(a, b):
 
 @pytest.fixture
 def use_cuda():
-    return True
+    return False
 
 
 def test_mapping_loss(points1, points2, poses, use_cuda):
