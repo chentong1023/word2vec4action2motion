@@ -136,6 +136,8 @@ Contact Chuan Guo at cguo2 at ualberta.ca for any questions or comments
 
 # Logs
 
+##### 11.27
+
 We have introduced vector mapping. Thus there should be arguments `--lambda_sim` and `--lambda_tri`. An example is given below:
 ```sh
 python train_motion_vae.py --name mapping_humanact12_nolie --dataset_type humanact12 --batch_size 8 --motion_length 60 --coarse_grained --lambda_kld 0.001 --lambda_sim 0.0001 --lambda_tri 0.0001 --eval_every 2000 --plot_every 50 --print_every 20 --save_every 2000 --save_latest 50 --time_counter --gpu_id 0 --iters 50000
@@ -143,3 +145,5 @@ python train_motion_vae.py --name mapping_humanact12_nolie --dataset_type humana
 Note that a large batch size will render it very very very slow!
 
 Lie algebra is not supported.
+
+Since large batch size would give rise to slow training, we limit the triplet loss to at most $l$ items ($l$ is set in `mapping_loss` method, with default value 8).

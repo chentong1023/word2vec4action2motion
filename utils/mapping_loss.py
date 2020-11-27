@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from typing import List, Tuple
 
 __all__ = ["mapping_loss"]
@@ -25,11 +26,11 @@ def dis_matrix(original_p: torch.Tensor, mapped_p: torch.Tensor, device) -> torc
     return dis_mat
 
 def mapping_loss(
-    original_p: torch.Tensor, mapped_p: torch.Tensor, poses: torch.Tensor, pose_loss, device
+    original_p: torch.Tensor, mapped_p: torch.Tensor, poses: torch.Tensor, pose_loss, device, lim=8
 ) -> Tuple[torch.Tensor, torch.Tensor]:
 
     assert original_p.shape[0] == mapped_p.shape[0] == poses.shape[0]
-    batch_size = original_p.shape[0]
+    batch_size = np.minimum(original_p.shape[0], lim)
 
     similarity_loss = torch.sum((original_p - mapped_p) ** 2)
 
