@@ -179,6 +179,8 @@ class Trainer(object):
 
         log_dict["g_recon_loss"] = mse.item() / opt_step_cnt
         log_dict["g_kld_loss"] = kld.item() / opt_step_cnt
+        log_dict["g_sim_loss"] = sim.item() / opt_step_cnt
+        log_dict["g_tri_loss"] = tri.item() / opt_step_cnt
         losses = (
             mse
             + kld * self.opt.lambda_kld
