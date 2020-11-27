@@ -8,36 +8,41 @@ from models.mlp import MLP
 
 @pytest.fixture
 def batch():
-    return 6
+    return 10
 
 
 @pytest.fixture
-def shape():
+def point_shape():
     return 2, 3, 4
 
 
 @pytest.fixture
-def points1(shape, batch):
-    return torch.randn((batch, ) + shape)
+def pose_shape():
+    return 5, 6, 7, 8
 
 
 @pytest.fixture
-def points2(shape, batch):
-    return torch.randn((batch, ) + shape)
+def points1(point_shape, batch):
+    return torch.randn((batch,) + point_shape)
 
 
 @pytest.fixture
-def poses(batch):
-    return torch.randn((batch, ))
+def points2(point_shape, batch):
+    return torch.randn((batch,) + point_shape)
+
+
+@pytest.fixture
+def poses(batch, pose_shape):
+    return torch.randn((batch,) + pose_shape)
 
 
 def pose_loss(a, b):
-    return (a - b) ** 2
+    return torch.sum((a - b) ** 2)
 
 
 @pytest.fixture
 def use_cuda():
-    return True
+    return False
 
 
 def test_mapping_loss(points1, points2, poses, use_cuda):
@@ -48,7 +53,8 @@ def test_mapping_loss(points1, points2, poses, use_cuda):
         points1 = points1.cuda()
         points2 = points2.cuda()
         poses = poses.cuda()
-    mapping_loss(points1, points2, poses, pose_loss)
+    loss1, loss2 = mapping_loss(points1, points2, poses, pose_loss)
+    assert loss1.shape == () == loss2.shape
 
 
 def test_mlp(use_cuda):

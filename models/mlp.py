@@ -7,7 +7,9 @@ __all__ = ["MLP"]
 
 
 class MLP(nn.Module):
-    def __init__(self, input_size: int, output_size: int, hidden_size: List[int], device):
+    def __init__(
+        self, input_size: int, output_size: int, hidden_size: List[int], device
+    ):
         super(MLP, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
@@ -19,7 +21,7 @@ class MLP(nn.Module):
             if i == 0:
                 self.layers.append(nn.Linear(input_size, h).to(self.device))
             else:
-                self.layers.append(nn.Linear(hidden_size[i-1], h).to(self.device))
+                self.layers.append(nn.Linear(hidden_size[i - 1], h).to(self.device))
         self.output_layer = nn.Linear(hidden_size[-1], output_size)
 
         self.relu = nn.ReLU()

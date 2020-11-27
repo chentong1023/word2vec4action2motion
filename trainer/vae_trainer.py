@@ -165,7 +165,9 @@ class Trainer(object):
                 opt_step_cnt += 1
                 mse += self.recon_criterion(x_pred, data[:, i])
                 kld += self.kl_criterion(mu, logvar, mu_p, logvar_p)
-                similarity, triplet = mapping_loss(cate_embed, cate_embed_proj, data[:, i], self.recon_criterion)
+                similarity, triplet = mapping_loss(
+                    cate_embed, cate_embed_proj, data[:, i], self.recon_criterion
+                )
                 sim += similarity
                 tri += triplet
 
@@ -176,7 +178,12 @@ class Trainer(object):
 
         log_dict["g_recon_loss"] = mse.item() / opt_step_cnt
         log_dict["g_kld_loss"] = kld.item() / opt_step_cnt
-        losses = mse + kld * self.opt.lambda_kld + sim * self.opt.lambda_sim + tri * self.opt.lambda_tri
+        losses = (
+            mse
+            + kld * self.opt.lambda_kld
+            + sim * self.opt.lambda_sim
+            + tri * self.opt.lambda_tri
+        )
 
         avg_loss = losses.item() / opt_step_cnt
         losses.backward()
@@ -210,7 +217,9 @@ class Trainer(object):
                 if self.opt.time_counter:
                     time_counter = i / (self.opt.motion_length - 1)
                     time_counter_vec = self.tensor_fill((num_samples, 1), time_counter)
-                    condition_vec = torch.cat((cate_embed_project, time_counter_vec), dim=1)
+                    condition_vec = torch.cat(
+                        (cate_embed_project, time_counter_vec), dim=1
+                    )
                 # print(prior_vec.shape, condition_vec.shape)
                 h = torch.cat((prior_vec, condition_vec), dim=1)
                 z_t_p, mu_p, logvar_p, h_in_p = prior_net(h)
@@ -447,7 +456,13 @@ class TrainerLie(Trainer):
         return joints.view(joints.shape[0], -1)
 
     def evaluate(
-        self, prior_net, project_net, decoder, num_samples, cate_embed=None, real_joints=None
+        self,
+        prior_net,
+        project_net,
+        decoder,
+        num_samples,
+        cate_embed=None,
+        real_joints=None,
     ):
         generated_batch, classes_to_generate = super(TrainerLie, self).evaluate(
             prior_net, project_net, decoder, num_samples, cate_embed
@@ -484,7 +499,13 @@ class TrainerLie(Trainer):
 
     # Evaluation with variable bone lengths
     def evaluate3(
-        self, prior_net, project_net, decoder, num_samples, cate_embed=None, real_joints=None
+        self,
+        prior_net,
+        project_net,
+        decoder,
+        num_samples,
+        cate_embed=None,
+        real_joints=None,
     ):
         generated_batch, classes_to_generate = super(TrainerLie, self).evaluate(
             prior_net, project_net, decoder, num_samples, cate_embed
