@@ -211,7 +211,7 @@ class Trainer(object):
             prior_vec = self.tensor_fill((num_samples, self.opt.pose_dim), 0)
             prior_net.init_hidden(num_samples)
             decoder.init_hidden(num_samples)
-            project_net.init_hidden(num_samples)
+            # project_net.init_hidden(num_samples)
 
             generate_batch = []
             for i in range(0, self.opt.motion_length):
