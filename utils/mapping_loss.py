@@ -29,6 +29,8 @@ def mapping_loss(
     original_p: torch.Tensor, mapped_p: torch.Tensor, poses: torch.Tensor, pose_loss, device, lim=8
 ) -> Tuple[torch.Tensor, torch.Tensor]:
 
+    pose_loss = nn.MSELoss()  # ensure using mse loss
+
     assert original_p.shape[0] == mapped_p.shape[0] == poses.shape[0]
     batch_size = np.minimum(original_p.shape[0], lim)
 
