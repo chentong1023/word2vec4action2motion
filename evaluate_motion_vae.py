@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 
 from transformers import BertTokenizer, BertModel
 from embed.word_embeding import sequence_embedding
+from models.mlp import MLP
 
 if __name__ == "__main__":
     parser = TestOptions()
@@ -64,6 +65,7 @@ if __name__ == "__main__":
         raise NotImplementedError("This dataset is unregonized!!!")
 
     opt.dim_category = len(label_dec)
+    opt.dim_embedding = 768
 
     action_embed_dict = []
     action_dict = enumerator
@@ -93,6 +95,7 @@ if __name__ == "__main__":
         opt.num_samples,
         device,
     )
+    project_net = MLP(768, opt.dim_embedding, [128, 64])
     if opt.use_lie:
         decoder = vae_models.DecoderGRULie(
             opt.input_size + opt.dim_z,
@@ -114,8 +117,10 @@ if __name__ == "__main__":
 
     prior_net.load_state_dict(model["prior_net"])
     decoder.load_state_dict(model["decoder"])
+    project_net.load_state_dict(model["project_net"])
     prior_net.to(device)
     decoder.to(device)
+    project_net.to(device)
     if opt.use_lie:
         if opt.dataset_type == "humanact12":
             data = dataset.MotionFolderDatasetHumanAct12(
@@ -148,7 +153,7 @@ if __name__ == "__main__":
         trainer = Trainer(None, action_embed_dict, opt, device)
 
     if opt.do_random:
-        fake_motion, classes = trainer.evaluate(prior_net, decoder, opt.num_samples)
+        fake_motion, classes = trainer.evaluate(prior_net, project_net, decoder, opt.num_samples)
         fake_motion = fake_motion.cpu().numpy()
     elif opt.eval_type != "":
         category_em = sequence_embedding(opt.eval_type, bert_tokenizer, bert_model)
@@ -160,14 +165,14 @@ if __name__ == "__main__":
         categories = np.stack([category_em for i in range(opt.replic_times)])
         categories_em = torch.from_numpy(categories).to(device).requires_grad_(False)
         fake_motion, _ = trainer.evaluate(
-            prior_net, decoder, opt.replic_times, categories_em
+            prior_net, project_net, decoder, opt.replic_times, categories_em
         )
         fake_motion = fake_motion.cpu().numpy()
     else:
         categories = np.arange(opt.dim_category).repeat(opt.replic_times, axis=0)
         num_samples = categories.shape[0]
         category_em, classes = trainer.get_cate_word_embedding(categories)
-        fake_motion, _ = trainer.evaluate(prior_net, decoder, num_samples, category_em)
+        fake_motion, _ = trainer.evaluate(prior_net, project_net, decoder, num_samples, category_em)
         fake_motion = fake_motion.cpu().numpy()
 
     print(fake_motion.shape)
