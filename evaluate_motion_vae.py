@@ -194,6 +194,7 @@ if __name__ == "__main__":
             motion_orig.shape[0],
             joints_num,
         )
+        file_name2 = os.path.join(result_path, class_type + str(i) + "_traj.png")
 
         motion_mat = motion_orig - offset
 
@@ -205,6 +206,10 @@ if __name__ == "__main__":
         if opt.dataset_type == "humanact12":
             plot_3d_motion_v2(
                 motion_mat, kinematic_chain, save_path=file_name, interval=80
+            )
+            plot_3d_motion_with_trajec(
+                motion_mat, kinect_vibe_extract_joints,
+                save_path=file_name2, interval=80
             )
 
         elif opt.dataset_type == "ntu_rgbd_vibe":
