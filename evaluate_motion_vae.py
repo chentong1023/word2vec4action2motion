@@ -208,7 +208,7 @@ if __name__ == "__main__":
                 motion_mat, kinematic_chain, save_path=file_name, interval=80
             )
             plot_3d_motion_with_trajec(
-                motion_mat, kinect_vibe_extract_joints,
+                motion_mat, kinematic_chain,
                 save_path=file_name2, interval=80
             )
 
