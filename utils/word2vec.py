@@ -19,5 +19,5 @@ def init_network():
 
 def word_embeding_pair(word, bert_tokenizer, bert_model, project_net):
 	category_em = sequence_embedding(word, bert_tokenizer, bert_model)
-	cate_embed_project = project_net(cate_embed)
+	cate_embed_project = project_net(category_em)
 	return category_em, cate_embed_project
