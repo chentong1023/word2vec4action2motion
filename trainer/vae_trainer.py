@@ -6,6 +6,7 @@ from lie.pose_lie import *
 from lie.lie_util import *
 from utils.paramUtil import *
 from utils.mapping_loss import mapping_loss
+from tqdm import tqdm
 
 # Trainer for model without Lie
 class Trainer(object):
@@ -474,6 +475,18 @@ class TrainerLie(Trainer):
             # real_joints (batch_size, motion_length, joint_num*3)
             if real_joints is None:
                 real_joints, cate_data = self.sample_real_motion_batch()
+                # real_joints : ([20, 60, 72])
+
+                tot = 10000
+                s = 0
+                for _ in tqdm(range(tot)):
+                    x = np.random.randint(20)
+                    y = np.random.randint(20)
+                    z = (real_joints[x] - real_joints[y]) ** 2
+                    diff = z.mean()
+                    s += diff
+                print("diversity:", s / tot)
+
             if real_joints.shape[0] < num_samples:
                 repeat_ratio = int(num_samples / real_joints.shape[0])
                 real_joints = real_joints.repeat((repeat_ratio, 1, 1))
