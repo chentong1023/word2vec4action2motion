@@ -7,13 +7,13 @@ import numpy as np
 
 prefix = 'eval_results/vae/'
 dataset = 'humanact12/'
-model_name = 'mapping_humanact12_lie'
-pic_name = 'jog0.gif'
+model_name = 'project_net'
+pic_name = 'dance0.gif'
 interval = 10
 lr = 3
 ud = lr * 2
 
-gifFileName = prefix + dataset + model_name + "_R0/" + pic_name
+gifFileName = prefix + dataset + model_name + "R0/" + pic_name
 
 im = Image.open(gifFileName)
 pngDir = gifFileName[:-4]
